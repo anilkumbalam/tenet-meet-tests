@@ -11,6 +11,8 @@
     "@playwright/test": "^1.44.0"
   },
   "dependencies": {
+    "jsonwebtoken": "^9.0.3",
+    "livekit-client": "^2.23.0",
     "livekit-server-sdk": "^2.18.0"
   }
 }

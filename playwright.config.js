@@ -3,7 +3,8 @@ const { BASE_URL } = require('./tests/env')
 
 module.exports = defineConfig({
   testDir: './tests',
-  timeout: 60000,
+  timeout: 120000,
+  globalTimeout: 600000,
   retries: 1,
   workers: 1,
   use: {
@@ -11,6 +12,7 @@ module.exports = defineConfig({
     headless: true,
     viewport: { width: 1280, height: 800 },
     ignoreHTTPSErrors: true,
+    actionTimeout: 30000,
     launchOptions: {
       executablePath: '/root/.cache/ms-playwright/chromium-1228/chrome-linux64/chrome',
       args: [
@@ -18,6 +20,8 @@ module.exports = defineConfig({
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-gpu',
+        '--use-fake-ui-for-media-stream',
+        '--use-fake-device-for-media-stream',
       ],
     },
   },

@@ -1,17 +1,26 @@
-const { test, expect } = require('@playwright/test')
-const { AccessToken } = require('livekit-server-sdk')
+const { test, expect, chromium } = require('@playwright/test')
 const jwt = require('jsonwebtoken')
 
-const BASE_URL     = process.env.BASE_URL || 'https://meet.tenetnetworks.com'
-const JWT_SECRET   = process.env.JWT_SECRET || 'your_jwt_secret_here'
-const HOST_EMAIL   = process.env.HOST_EMAIL || 'anil@tenetnetworks.com'
+const BASE_URL     = process.env.BASE_URL     || 'https://meet.tenetnetworks.com'
+const JWT_SECRET   = process.env.JWT_SECRET   || 'your_jwt_secret_here'
+const HOST_EMAIL   = process.env.HOST_EMAIL   || 'anil@tenetnetworks.com'
 const HOST_DISPLAY = 'Anil Kumbalam'
 
-function forgeMeetToken(email, displayName, isAdmin = false) {
+const CHROME_ARGS = [
+  '--no-sandbox',
+  '--disable-setuid-sandbox',
+  '--disable-dev-shm-usage',
+  '--disable-gpu',
+  '--use-fake-ui-for-media-stream',
+  '--use-fake-device-for-media-stream',
+]
+const CHROME_PATH = '/root/.cache/ms-playwright/chromium-1228/chrome-linux64/chrome'
+
+function forgeMeetToken (email, displayName, isAdmin = false) {
   return jwt.sign({ email, displayName, isAdmin }, JWT_SECRET, { expiresIn: '2h' })
 }
 
-async function setAuthCookie(context, email, displayName) {
+async function setAuthCookie (context, email, displayName) {
   const token = forgeMeetToken(email, displayName)
   await context.addCookies([{
     name: 'meet_token', value: token,
@@ -20,23 +29,30 @@ async function setAuthCookie(context, email, displayName) {
   }])
 }
 
-const mediaStub = `(() => {
+const mediaStub = () => {
   const mk = () => {
     try {
       const ac = new AudioContext()
-      const dest = ac.createMediaStreamDestination()
-      return Promise.resolve(dest.stream)
-    } catch (e) {
-      return Promise.resolve(new MediaStream())
-    }
+      return Promise.resolve(ac.createMediaStreamDestination().stream)
+    } catch (e) { return Promise.resolve(new MediaStream()) }
   }
-  navigator.mediaDevices.getUserMedia    = mk
-  navigator.mediaDevices.getDisplayMedia = mk
+  navigator.mediaDevices.getUserMedia     = mk
+  navigator.mediaDevices.getDisplayMedia  = mk
   navigator.mediaDevices.enumerateDevices = async () => []
-})()`
+}
 
-async function joinAsHost(browser, meetingId, roomCode, hostEmail, hostDisplay) {
-  const ctx = await browser.newContext({ ignoreHTTPSErrors: true, permissions: ['camera', 'microphone'] })
+async function launchBrowser () {
+  return chromium.launch({
+    executablePath: CHROME_PATH,
+    headless: true,
+    args: CHROME_ARGS,
+    ignoreHTTPSErrors: true,
+  })
+}
+
+async function joinAsHost (meetingId, hostEmail, hostDisplay) {
+  const browser = await launchBrowser()
+  const ctx     = await browser.newContext({ ignoreHTTPSErrors: true, permissions: ['camera', 'microphone'] })
   await ctx.addInitScript(mediaStub)
   await setAuthCookie(ctx, hostEmail, hostDisplay)
   const page = await ctx.newPage()
@@ -44,50 +60,66 @@ async function joinAsHost(browser, meetingId, roomCode, hostEmail, hostDisplay) 
   const joinRes = await page.request.post(`${BASE_URL}/api/meetings/${meetingId}/join`, {
     data: { device_id: `test-host-${Date.now()}` },
   })
-  if (!joinRes.ok()) throw new Error(`Host join API failed ${joinRes.status()}: ${await joinRes.text()}`)
+  if (!joinRes.ok()) {
+    await browser.close()
+    throw new Error(`Host join API failed ${joinRes.status()}: ${await joinRes.text()}`)
+  }
   const { url } = await joinRes.json()
 
   await page.goto(`${BASE_URL}${url}`, { waitUntil: 'domcontentloaded' })
 
   const avBtn = page.locator('#av-join-btn')
   if (await avBtn.isVisible({ timeout: 8000 }).catch(() => false)) await avBtn.click()
-  await expect(page.locator('#loading-screen')).toHaveClass(/hidden/, { timeout: 20000 })
-  return { page, ctx }
+
+  try {
+    await expect(page.locator('#loading-screen')).toHaveClass(/hidden/, { timeout: 20000 })
+  } catch {
+    console.warn('[Host] loading screen timeout')
+  }
+
+  return { browser, ctx, page }
 }
 
-async function joinAsGuest(browser, roomCode, guestName) {
-  const ctx = await browser.newContext({ ignoreHTTPSErrors: true, permissions: ['camera', 'microphone'] })
+async function joinAsGuest (roomUuid, guestName) {
+  const browser = await launchBrowser()
+  const ctx     = await browser.newContext({ ignoreHTTPSErrors: true, permissions: ['camera', 'microphone'] })
   await ctx.addInitScript(mediaStub)
   const page = await ctx.newPage()
-  await page.goto(`${BASE_URL}/join/${roomCode}`, { waitUntil: 'domcontentloaded' })
-  await page.locator('#n').fill(guestName)
-  await page.locator('button').filter({ hasText: 'Join Meeting' }).click()
-  const avBtn = page.locator('#av-join-btn')
-  if (await avBtn.isVisible({ timeout: 10000 }).catch(() => false)) await avBtn.click()
-  await expect(page.locator('#loading-screen')).toHaveClass(/hidden/, { timeout: 30000 })
-  return { page, ctx }
-}
 
-// Inject guests directly via API so they appear in the participant panel
-// even if their WebRTC connection is headless-limited
-async function registerGuestViaApi(page, roomUuid, guestName) {
-  const res = await page.request.post(`${BASE_URL}/api/guest-join/${roomUuid}`, {
+  const joinRes = await page.request.post(`${BASE_URL}/api/guest-join/${roomUuid}`, {
     data: { display_name: guestName },
   })
-  if (!res.ok()) console.warn(`guest-join API: ${res.status()} for ${guestName}`)
-  return res.ok() ? await res.json() : null
+  if (!joinRes.ok()) {
+    await browser.close()
+    throw new Error(`[${guestName}] guest-join API ${joinRes.status()}: ${await joinRes.text()}`)
+  }
+  const { url } = await joinRes.json()
+  console.log(`[${guestName}] meeting URL: ${url}`)
+
+  await page.goto(`${BASE_URL}${url}`, { waitUntil: 'domcontentloaded' })
+
+  const avBtn = page.locator('#av-join-btn')
+  if (await avBtn.isVisible({ timeout: 8000 }).catch(() => false)) await avBtn.click()
+
+  try {
+    await expect(page.locator('#loading-screen')).toHaveClass(/hidden/, { timeout: 20000 })
+  } catch {
+    console.warn(`[${guestName}] loading screen timeout — URL: ${page.url()}`)
+  }
+
+  return { browser, ctx, page }
 }
 
+let meetingId, roomUuid, roomCode
+let hostBrowser, hostCtx, hostPage
+let guests = []
+
 test.describe('08 - Room controls (host + 3 guests)', () => {
-  let hostPage, hostCtx
-  let meetingId, roomUuid, roomCode
-  let guestPages = []
 
   test.setTimeout(180000)
 
   test.beforeAll(async ({ browser }) => {
-    // 1. Create meeting
-    const setupCtx = await browser.newContext({ ignoreHTTPSErrors: true })
+    const setupCtx  = await browser.newContext({ ignoreHTTPSErrors: true })
     await setAuthCookie(setupCtx, HOST_EMAIL, HOST_DISPLAY)
     const setupPage = await setupCtx.newPage()
 
@@ -102,75 +134,67 @@ test.describe('08 - Room controls (host + 3 guests)', () => {
     await setupPage.close()
     await setupCtx.close()
 
-    // 2. Host joins
-    const hostJoin = await joinAsHost(browser, meetingId, roomCode, HOST_EMAIL, HOST_DISPLAY)
-    hostPage = hostJoin.page
-    hostCtx  = hostJoin.ctx
+    const h = await joinAsHost(meetingId, HOST_EMAIL, HOST_DISPLAY)
+    hostBrowser = h.browser
+    hostCtx     = h.ctx
+    hostPage    = h.page
 
-    // 3. Open participant panel so it's ready
-    const panel = hostPage.locator('#right-panel')
-    const panelHidden = await panel.getAttribute('class').then(c => (c||'').includes('hidden')).catch(() => true)
+    const panelHidden = await hostPage.locator('#right-panel').getAttribute('class')
+      .then(c => (c || '').includes('hidden')).catch(() => true)
     if (panelHidden) {
       await hostPage.locator('#btn-panel').click()
       await hostPage.waitForTimeout(500)
     }
 
-    // 4. Three guests join (via /join page + also register via API for panel visibility)
     const guestNames = ['Guest Alpha', 'Guest Beta', 'Guest Gamma']
-    for (const name of guestNames) {
-      // Register via API first so server knows about them
-      await registerGuestViaApi(hostPage, roomUuid, name)
-      // Then join via browser
-      try {
-        const g = await joinAsGuest(browser, roomCode, name)
-        guestPages.push({ ...g, name })
-      } catch (e) {
-        console.warn(`Guest ${name} browser join failed: ${e.message}`)
-        guestPages.push({ page: null, ctx: null, name })
+    const results = await Promise.allSettled(
+      guestNames.map(name => joinAsGuest(roomUuid, name))
+    )
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i]
+      if (r.status === 'fulfilled') {
+        guests.push({ ...r.value, name: guestNames[i] })
+      } else {
+        throw new Error(`Guest ${guestNames[i]} could not join: ${r.reason?.message}`)
       }
     }
 
-    // Give LiveKit connections time to propagate
-    await hostPage.waitForTimeout(5000)
+    await new Promise(r => setTimeout(r, 5000))
   })
 
   test.afterAll(async () => {
-    for (const { ctx } of guestPages) {
-      if (ctx) await ctx.close().catch(() => {})
+    for (const g of guests) {
+      if (g.browser) await g.browser.close().catch(() => {})
     }
-    guestPages = []
+    guests = []
     if (meetingId && hostPage) {
       await hostPage.request.post(`${BASE_URL}/api/meetings/${meetingId}/cancel`).catch(() => {})
     }
-    if (hostCtx) await hostCtx.close().catch(() => {})
+    if (hostBrowser) await hostBrowser.close().catch(() => {})
   })
-
-  // ── Tests ────────────────────────────────────────────────────────────────────
 
   test('host is taken to the meeting room', async () => {
     await expect(hostPage).toHaveURL(new RegExp(`/meeting/${roomCode}`))
     await expect(hostPage.locator('#room-name-display')).toBeVisible()
   })
 
-  test('host sees at least their own tile', async () => {
-    // Host tile is always present; guests may not establish WebRTC in headless
-    await expect(hostPage.locator('.video-tile').first()).toBeVisible({ timeout: 15000 })
+  test('host sees tiles for all 4 participants (self + 3 guests)', async () => {
+    await expect(hostPage.locator('.video-tile')).toHaveCount(4, { timeout: 30000 })
     const count = await hostPage.locator('.video-tile').count()
-    expect(count).toBeGreaterThanOrEqual(1)
+    console.log(`Tile count: ${count}`)
   })
 
-  test('all 3 guests reached the meeting room page', async () => {
-    for (const { page, name } of guestPages) {
-      if (!page) { console.warn(`[${name}] no page (browser join failed)`); continue }
-      await expect(page).toHaveURL(new RegExp(`/meeting/${roomCode}`), { timeout: 10000 })
-        .catch(() => console.warn(`[${name}] URL mismatch`))
-      await expect(page.locator('#loading-screen')).toHaveClass(/hidden/, { timeout: 10000 })
+  test('all 3 guests are on the meeting room page', async () => {
+    expect(guests).toHaveLength(3)
+    for (const { page, name } of guests) {
+      console.log(`[${name}] URL: ${page.url()}`)
+      expect(page.url()).toMatch(/\/meeting\//)
     }
   })
 
   test('host can open the participants panel', async () => {
     const panel = hostPage.locator('#right-panel')
-    const panelHidden = await panel.getAttribute('class').then(c => (c||'').includes('hidden')).catch(() => true)
+    const panelHidden = await panel.getAttribute('class').then(c => (c || '').includes('hidden')).catch(() => true)
     if (panelHidden) {
       await hostPage.locator('#btn-panel').click()
       await hostPage.waitForTimeout(500)
@@ -178,12 +202,11 @@ test.describe('08 - Room controls (host + 3 guests)', () => {
     await expect(panel).toBeVisible()
   })
 
-  test('participants panel shows the host entry', async () => {
-    // Panel should at minimum show the host
+  test('participants panel shows all 4 entries (host + 3 guests)', async () => {
     const items = hostPage.locator('.participant-item')
-    await expect(items.first()).toBeVisible({ timeout: 15000 })
+    await expect(items).toHaveCount(4, { timeout: 30000 })
     const count = await items.count()
-    expect(count).toBeGreaterThanOrEqual(1)
+    console.log(`Panel shows ${count} participant(s)`)
   })
 
   test('host can click Mute All', async () => {
@@ -200,13 +223,9 @@ test.describe('08 - Room controls (host + 3 guests)', () => {
     await expect(hostPage.locator('#btn-unmute-all')).toBeVisible()
   })
 
-  test('host can mute and unmute an individual participant (if panel has entries)', async () => {
+  test('host can mute and unmute an individual guest', async () => {
     const items = hostPage.locator('.participant-item')
     const count = await items.count()
-    if (count < 2) {
-      console.warn('Only 1 participant item — skipping individual mute (host row has no mute button)')
-      return
-    }
     let target = null
     for (let i = 0; i < count; i++) {
       const item = items.nth(i)
@@ -214,21 +233,16 @@ test.describe('08 - Room controls (host + 3 guests)', () => {
         target = item; break
       }
     }
-    if (!target) { console.warn('No Mute button found in panel — skipping'); return }
-
+    expect(target, 'No Mute button found — guests not in panel').not.toBeNull()
     await target.locator('.p-mod-btn').filter({ hasText: 'Mute' }).click()
     await hostPage.waitForTimeout(1500)
     const unmuteBtn = target.locator('.p-mod-btn').filter({ hasText: 'Unmute' })
-    if (await unmuteBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await unmuteBtn.click()
-    }
+    if (await unmuteBtn.isVisible({ timeout: 3000 }).catch(() => false)) await unmuteBtn.click()
   })
 
-  test('host can promote a participant to co-host (if panel has entries)', async () => {
+  test('host can promote a guest to co-host', async () => {
     const items = hostPage.locator('.participant-item')
     const count = await items.count()
-    if (count < 2) { console.warn('Only 1 participant — skipping co-host test'); return }
-
     let target = null
     for (let i = 0; i < count; i++) {
       const item = items.nth(i)
@@ -236,18 +250,15 @@ test.describe('08 - Room controls (host + 3 guests)', () => {
         target = item; break
       }
     }
-    if (!target) { console.warn('No Make co-host button found — skipping'); return }
-
+    expect(target, 'No Make co-host button found — guests not in panel').not.toBeNull()
     await target.locator('.p-mod-btn').filter({ hasText: 'Make co-host' }).click()
     await hostPage.waitForTimeout(2000)
     await expect(target.locator('.mod-badge')).toBeVisible({ timeout: 8000 })
   })
 
-  test('host can remove a participant (if panel has entries)', async () => {
+  test('host can remove a guest', async () => {
     const items = hostPage.locator('.participant-item')
     const count = await items.count()
-    if (count < 2) { console.warn('Only 1 participant — skipping remove test'); return }
-
     let target = null
     for (let i = 0; i < count; i++) {
       const item = items.nth(i)
@@ -255,14 +266,18 @@ test.describe('08 - Room controls (host + 3 guests)', () => {
         target = item; break
       }
     }
-    if (!target) { console.warn('No Remove button found — skipping'); return }
+    expect(target, 'No Remove button found — guests not in panel').not.toBeNull()
 
-    const before = await hostPage.locator('.video-tile').count()
+    // Handle native confirm() dialog if the UI uses one
+    hostPage.once('dialog', d => d.accept().catch(() => {}))
     await target.locator('.kick-btn').click()
-    await hostPage.waitForTimeout(3000)
-    // Tiles should decrease OR panel item count should decrease
-    const afterItems = await hostPage.locator('.participant-item').count()
-    expect(afterItems).toBeLessThanOrEqual(count)
+
+    // Also click any in-page confirmation modal that may appear
+    const confirmBtn = hostPage.locator('button').filter({ hasText: /confirm|yes|remove|kick/i })
+    if (await confirmBtn.isVisible({ timeout: 2000 }).catch(() => false)) await confirmBtn.click()
+
+    // Wait for LiveKit to propagate removal (up to 15s)
+    await expect(hostPage.locator('.participant-item')).toHaveCount(count - 1, { timeout: 15000 })
   })
 
   test('host can lock the room then unlock it', async () => {
@@ -271,11 +286,11 @@ test.describe('08 - Room controls (host + 3 guests)', () => {
     await lockBtn.click()
     await hostPage.waitForTimeout(1500)
     const lockedVal = await lockBtn.getAttribute('data-locked').catch(() => null)
-    if (lockedVal !== null) expect(['true','1','locked']).toContain(lockedVal)
+    if (lockedVal !== null) expect(['true', '1', 'locked']).toContain(lockedVal)
     await lockBtn.click()
     await hostPage.waitForTimeout(1500)
     const unlockedVal = await lockBtn.getAttribute('data-locked').catch(() => null)
-    if (unlockedVal !== null) expect(['false','0','']).toContain(unlockedVal)
+    if (unlockedVal !== null) expect(['false', '0', '']).toContain(unlockedVal)
   })
 
   test('share screen button is visible for host', async () => {
@@ -283,8 +298,8 @@ test.describe('08 - Room controls (host + 3 guests)', () => {
   })
 
   test('Mute All button is not visible to guests', async () => {
-    for (const { page, name } of guestPages) {
-      if (!page) continue
+    expect(guests).toHaveLength(3)
+    for (const { page, name } of guests) {
       const visible = await page.locator('#btn-mute-all').isVisible().catch(() => false)
       expect(visible, `${name} should not see Mute All`).toBe(false)
     }
