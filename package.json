@@ -1,0 +1,16 @@
+{
+  "name": "tenet-meet-tests",
+  "version": "1.0.0",
+  "description": "Playwright end-to-end tests for Tenet Meet",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0"
+  },
+  "dependencies": {
+    "livekit-server-sdk": "^2.18.0"
+  }
+}
