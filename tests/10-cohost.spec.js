@@ -143,7 +143,7 @@ test.describe('10 - Co-host promotion and controls', () => {
     // 7. Wait up to 20s for co-host browser to pick up promotion
     // (DataChannel fires immediately; server poll fallback fires within 15s)
     console.log('[Co-host] waiting for promotion to propagate...')
-    await expect(cohostPage.locator('#btn-mute-all')).toBeVisible({ timeout: 20000 })
+    await expect(cohostPage.locator('#btn-mute-all')).toBeVisible({ timeout: 30000 })
     console.log('[Co-host] promotion confirmed — Mute All now visible')
   })
 

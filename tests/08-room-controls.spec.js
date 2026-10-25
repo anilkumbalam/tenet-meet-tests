@@ -159,7 +159,8 @@ test.describe('08 - Room controls (host + 3 guests)', () => {
       }
     }
 
-    await new Promise(r => setTimeout(r, 5000))
+    // Wait for all 4 tiles before tests begin
+    await expect(hostPage.locator('.video-tile')).toHaveCount(4, { timeout: 40000 })
   })
 
   test.afterAll(async () => {
