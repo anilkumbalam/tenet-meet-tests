@@ -69,7 +69,7 @@ async function joinAsHost (meetingId, hostEmail, hostDisplay) {
   await page.goto(`${BASE_URL}${url}`, { waitUntil: 'domcontentloaded' })
 
   const avBtn = page.locator('#av-join-btn')
-  if (await avBtn.isVisible({ timeout: 8000 }).catch(() => false)) await avBtn.click()
+  await avBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => avBtn.click()).catch(() => {})
 
   try {
     await expect(page.locator('#loading-screen')).toHaveClass(/hidden/, { timeout: 20000 })
@@ -99,7 +99,7 @@ async function joinAsGuest (roomUuid, guestName) {
   await page.goto(`${BASE_URL}${url}`, { waitUntil: 'domcontentloaded' })
 
   const avBtn = page.locator('#av-join-btn')
-  if (await avBtn.isVisible({ timeout: 8000 }).catch(() => false)) await avBtn.click()
+  await avBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => avBtn.click()).catch(() => {})
 
   try {
     await expect(page.locator('#loading-screen')).toHaveClass(/hidden/, { timeout: 20000 })
@@ -113,6 +113,15 @@ async function joinAsGuest (roomUuid, guestName) {
 let meetingId, roomUuid, roomCode
 let hostBrowser, hostCtx, hostPage
 let guests = []
+
+// Participant row actions live in a ⋯ menu (people-panel.js) — open it before clicking. No-op on the old layout.
+async function openRowMenu (row) {
+  const more = row.locator('.tp-more')
+  if (await more.count() > 0 && await more.first().isVisible().catch(() => false)) {
+    await more.first().click()
+    await row.locator('.tp-menu.open').waitFor({ state: 'visible', timeout: 3000 }).catch(() => {})
+  }
+}
 
 test.describe('08 - Room controls (host + 3 guests)', () => {
 
@@ -230,15 +239,17 @@ test.describe('08 - Room controls (host + 3 guests)', () => {
     let target = null
     for (let i = 0; i < count; i++) {
       const item = items.nth(i)
-      if (await item.locator('.p-mod-btn').filter({ hasText: 'Mute' }).isVisible().catch(() => false)) {
+      if (await item.locator('.p-mod-btn').filter({ hasText: 'Mute' }).count() > 0) {
         target = item; break
       }
     }
     expect(target, 'No Mute button found — guests not in panel').not.toBeNull()
+    await openRowMenu(target)
     await target.locator('.p-mod-btn').filter({ hasText: 'Mute' }).click()
     await hostPage.waitForTimeout(1500)
     const unmuteBtn = target.locator('.p-mod-btn').filter({ hasText: 'Unmute' })
-    if (await unmuteBtn.isVisible({ timeout: 3000 }).catch(() => false)) await unmuteBtn.click()
+    await openRowMenu(target)
+    await unmuteBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => unmuteBtn.click()).catch(() => {})
   })
 
   test('host can promote a guest to co-host', async () => {
@@ -247,11 +258,12 @@ test.describe('08 - Room controls (host + 3 guests)', () => {
     let target = null
     for (let i = 0; i < count; i++) {
       const item = items.nth(i)
-      if (await item.locator('.p-mod-btn').filter({ hasText: 'Make co-host' }).isVisible().catch(() => false)) {
+      if (await item.locator('.p-mod-btn').filter({ hasText: 'Make co-host' }).count() > 0) {
         target = item; break
       }
     }
     expect(target, 'No Make co-host button found — guests not in panel').not.toBeNull()
+    await openRowMenu(target)
     await target.locator('.p-mod-btn').filter({ hasText: 'Make co-host' }).click()
     await hostPage.waitForTimeout(2000)
     await expect(target.locator('.mod-badge')).toBeVisible({ timeout: 8000 })
@@ -263,7 +275,7 @@ test.describe('08 - Room controls (host + 3 guests)', () => {
     let target = null
     for (let i = 0; i < count; i++) {
       const item = items.nth(i)
-      if (await item.locator('.kick-btn').isVisible().catch(() => false)) {
+      if (await item.locator('.kick-btn').count() > 0) {
         target = item; break
       }
     }
@@ -271,11 +283,12 @@ test.describe('08 - Room controls (host + 3 guests)', () => {
 
     // Handle native confirm() dialog if the UI uses one
     hostPage.once('dialog', d => d.accept().catch(() => {}))
+    await openRowMenu(target)
     await target.locator('.kick-btn').click()
 
     // Also click any in-page confirmation modal that may appear
     const confirmBtn = hostPage.locator('button').filter({ hasText: /confirm|yes|remove|kick/i })
-    if (await confirmBtn.isVisible({ timeout: 2000 }).catch(() => false)) await confirmBtn.click()
+    await confirmBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => confirmBtn.click()).catch(() => {})
 
     // Wait for LiveKit to propagate removal (up to 15s)
     await expect(hostPage.locator('.participant-item')).toHaveCount(count - 1, { timeout: 15000 })

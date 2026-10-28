@@ -64,7 +64,7 @@ async function joinAsHost (meetingId, hostEmail, hostDisplay) {
   await page.goto(`${BASE_URL}${url}`, { waitUntil: 'domcontentloaded' })
 
   const avBtn = page.locator('#av-join-btn')
-  if (await avBtn.isVisible({ timeout: 8000 }).catch(() => false)) await avBtn.click()
+  await avBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => avBtn.click()).catch(() => {})
 
   try {
     await expect(page.locator('#loading-screen')).toHaveClass(/hidden/, { timeout: 20000 })
@@ -92,7 +92,7 @@ async function joinAsGuest (roomUuid, guestName) {
   await page.goto(`${BASE_URL}${url}`, { waitUntil: 'domcontentloaded' })
 
   const avBtn = page.locator('#av-join-btn')
-  if (await avBtn.isVisible({ timeout: 8000 }).catch(() => false)) await avBtn.click()
+  await avBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => avBtn.click()).catch(() => {})
 
   try {
     await expect(page.locator('#loading-screen')).toHaveClass(/hidden/, { timeout: 20000 })

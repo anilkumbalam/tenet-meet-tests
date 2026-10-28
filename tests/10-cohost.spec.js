@@ -52,7 +52,7 @@ async function joinAsHost (meetingId) {
   const { url } = await res.json()
   await page.goto(`${BASE_URL}${url}`, { waitUntil: 'domcontentloaded' })
   const avBtn = page.locator('#av-join-btn')
-  if (await avBtn.isVisible({ timeout: 8000 }).catch(() => false)) await avBtn.click()
+  await avBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => avBtn.click()).catch(() => {})
   try { await expect(page.locator('#loading-screen')).toHaveClass(/hidden/, { timeout: 20000 }) }
   catch { console.warn('[Host] loading screen timeout') }
   return { browser, ctx, page }
@@ -70,7 +70,7 @@ async function joinAsGuest (roomUuid, guestName) {
   const { url } = await res.json()
   await page.goto(`${BASE_URL}${url}`, { waitUntil: 'domcontentloaded' })
   const avBtn = page.locator('#av-join-btn')
-  if (await avBtn.isVisible({ timeout: 8000 }).catch(() => false)) await avBtn.click()
+  await avBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => avBtn.click()).catch(() => {})
   try { await expect(page.locator('#loading-screen')).toHaveClass(/hidden/, { timeout: 20000 }) }
   catch { console.warn(`[${guestName}] loading screen timeout`) }
   return { browser, ctx, page }
@@ -81,6 +81,15 @@ let meetingId, roomUuid
 let hostBrowser, hostPage
 let cohostBrowser, cohostPage
 let guestBrowser, guestPage
+
+// Participant row actions live in a ⋯ menu (people-panel.js) — open it before clicking. No-op on the old layout.
+async function openRowMenu (row) {
+  const more = row.locator('.tp-more')
+  if (await more.count() > 0 && await more.first().isVisible().catch(() => false)) {
+    await more.first().click()
+    await row.locator('.tp-menu.open').waitFor({ state: 'visible', timeout: 3000 }).catch(() => {})
+  }
+}
 
 test.describe('10 - Co-host promotion and controls', () => {
 
@@ -130,8 +139,11 @@ test.describe('10 - Co-host promotion and controls', () => {
     let promoted = false
     for (let i = 0; i < count; i++) {
       const item = items.nth(i)
+      // Promote Guest Alpha specifically — row order depends on who connected first
+      if (((await item.textContent()) || '').indexOf('Guest Alpha') < 0) continue
       const makeBtn = item.locator('.p-mod-btn').filter({ hasText: 'Make co-host' })
-      if (await makeBtn.isVisible().catch(() => false)) {
+      if (await makeBtn.count() > 0) {
+        await openRowMenu(item)
         await makeBtn.click()
         promoted = true
         console.log('[Host] promoted Guest Alpha to co-host')
@@ -185,12 +197,12 @@ test.describe('10 - Co-host promotion and controls', () => {
       .then(c => (c || '').includes('hidden')).catch(() => true)
     if (panelHidden) { await cohostPage.locator('#btn-panel').click(); await cohostPage.waitForTimeout(500) }
 
-    await expect(cohostPage.locator('.kick-btn').first()).toBeVisible({ timeout: 10000 })
+    await expect(cohostPage.locator('.kick-btn').first()).toBeAttached({ timeout: 10000 })
     console.log('[Co-host] kick button visible in panel')
 
     await expect(
       cohostPage.locator('.p-mod-btn').filter({ hasText: 'Mute' }).first()
-    ).toBeVisible({ timeout: 5000 })
+    ).toBeAttached({ timeout: 5000 })
     console.log('[Co-host] individual Mute button visible in panel')
   })
 
@@ -219,7 +231,8 @@ test.describe('10 - Co-host promotion and controls', () => {
     let removed = false
     for (let i = 0; i < countBefore; i++) {
       const kickBtn = items.nth(i).locator('.kick-btn')
-      if (await kickBtn.isVisible().catch(() => false)) {
+      if (await kickBtn.count() > 0) {
+        await openRowMenu(items.nth(i))
         cohostPage.once('dialog', d => d.accept())
         await kickBtn.click()
         removed = true
