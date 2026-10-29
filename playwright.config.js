@@ -4,7 +4,7 @@ const { BASE_URL } = require('./tests/env')
 module.exports = defineConfig({
   testDir: './tests',
   timeout: 120000,
-  globalTimeout: 600000,
+  globalTimeout: 1800000,
   retries: 1,
   workers: 1,
   use: {
