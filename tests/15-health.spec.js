@@ -59,6 +59,7 @@ test.describe.serial('15 - Health and safety net', () => {
     const want = {
       TenetChat: ['add', 'clearUnread', 'init'],          // js/meeting/chat.js (v2)
       TenetPeopleList: ['render'],                        // js/meeting/people.js (v2)
+      TenetTiles: ['id', 'fill', 'setAudio', 'attach', 'detach'],   // js/meeting/tiles.js (v2)
       TenetPeople: ['setTab', 'refresh'],                 // people-panel.js
       TenetRejoin: ['show'],                              // rejoin.js
       TenetWakeLock: ['active'],                          // wake-lock.js
