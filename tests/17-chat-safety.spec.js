@@ -37,13 +37,13 @@ test.describe.serial('17 - Chat and name safety', () => {
     if (api) await api.close().catch(() => {})
   })
 
-  test('unread dot appears while the panel is closed and clears when it is opened', async () => {
+  test('unread chat icon appears in the top bar while the panel is closed and clears when it is opened', async () => {
     await setPanel(host.page, false)
-    await expect(host.page.locator('#chat-badge')).toBeHidden()
+    await expect(host.page.locator('#chat-unread')).toBeHidden()
     await guestSays(guest, 'Are you there?')
-    await expect(host.page.locator('#chat-badge')).toBeVisible({ timeout: 15000 })
+    await expect(host.page.locator('#chat-unread')).toBeVisible({ timeout: 15000 })
     await setPanel(host.page, true)
-    await expect(host.page.locator('#chat-badge')).toBeHidden({ timeout: 5000 })
+    await expect(host.page.locator('#chat-unread')).toBeHidden({ timeout: 5000 })
     await expect(host.page.locator('#chat-messages')).toContainText('Are you there?')
   })
 
