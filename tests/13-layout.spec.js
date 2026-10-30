@@ -19,6 +19,8 @@ test.describe.serial('13 - Layout (desktop and phone)', () => {
     await expect(phone.page.locator('#video-grid .video-tile')).toHaveCount(3, { timeout: 30000 })
   })
 
+  test.afterEach(async () => { await H.expectHealthy(host, tall, phone) })   // no uncaught errors, no frozen page
+
   test.afterAll(async () => {
     if (meetingId && api) await api.request.post(`${H.BASE_URL}/api/meetings/${meetingId}/cancel`).catch(() => {})
     for (const p of [tall, phone, host]) if (p) await p.browser.close().catch(() => {})
@@ -52,6 +54,13 @@ test.describe.serial('13 - Layout (desktop and phone)', () => {
   test('presenter (desktop): toolbar button becomes Stop share, pill says You are sharing', async () => {
     await host.page.locator('#btn-screen').click()
     await expect.poll(() => H.isSharing(host.page), { timeout: 20000 }).toBe(true)
+    // share quality actually used by the sender: one stream (no simulcast), capped at 1.5 Mbps and 5 fps
+    await expect.poll(() => host.page.evaluate(() => {
+      const L = window.LivekitClient, pub = window.__tenetRoom.localParticipant.getTrackPublication(L.Track.Source.ScreenShare)
+      const snd = pub && pub.track && pub.track.sender; if (!snd) return 'no sender yet'
+      const e = snd.getParameters().encodings || []
+      return e.length + ' stream, ' + (e[0] && e[0].maxBitrate) + ' bps, ' + (e[0] && e[0].maxFramerate) + ' fps'
+    }), { timeout: 10000 }).toBe('1 stream, 1500000 bps, 5 fps')
     await expect(host.page.locator('#btn-screen')).toContainText('Stop share', { timeout: 5000 })
     await expect(host.page.locator('#ssl-pill')).toBeVisible()
     await expect(host.page.locator('#ssl-pill')).toContainText("You're sharing")
