@@ -10,7 +10,7 @@ const CREDENTIALS = {
 }
 
 const AUTH_STATE_PATH = path.join(__dirname, '..', '.auth', 'user.json')
-const JWT_SECRET = process.env.JWT_SECRET || 'faf4d8e88de196c91296c45a46f9b7b757f5476a8db322a5d844865f18f4701a'
+const JWT_SECRET = process.env.JWT_SECRET
 
 function makeJwt(payload, secret, expiresIn = 8 * 3600) {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
