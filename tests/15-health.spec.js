@@ -70,7 +70,7 @@ test.describe.serial('15 - Health and safety net', () => {
       const o = window[g]
       if (o == null) return [g + ' missing']
       return fns.filter(f => typeof o[f] !== 'function').map(f => g + '.' + f + ' is not a function (name clash?)')
-    }), ui === '2' ? want : Object.fromEntries(Object.entries(want).filter(([g]) => !['TenetChat', 'TenetPeopleList', 'TenetTiles'].includes(g))   // v2-only modules))
+    }), ui === '2' ? want : Object.fromEntries(Object.entries(want).filter(([g]) => !['TenetChat', 'TenetPeopleList', 'TenetTiles'].includes(g))))
     expect(missing, 'served UI v' + ui).toEqual([])
   })
 
