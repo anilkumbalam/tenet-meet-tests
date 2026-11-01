@@ -121,6 +121,19 @@ async function joinAsHost (meetingId, device = DESKTOP, engine = 'chromium') {
   return { browser, ctx, page, name: 'Host' }
 }
 
+async function joinAsStaff (meetingId, email, displayName, device = DESKTOP) {
+  const browser = await launch('chromium')
+  const ctx = await newCtx(browser, device)
+  await setAuthCookie(ctx, email, displayName)
+  const page = await ctx.newPage()
+  track(page)
+  const res = await page.request.post(`${BASE_URL}/api/meetings/${meetingId}/join`, { data: { device_id: `test-staff-${Date.now()}` } })
+  if (res.ok() === false) { await browser.close(); throw new Error(`[${displayName}] staff join failed ${res.status()}`) }
+  const { url } = await res.json()
+  await page.goto(`${BASE_URL}${url}`, { waitUntil: 'domcontentloaded' })
+  await finishJoin(page, displayName)
+  return { browser, ctx, page, name: displayName }
+}
 async function joinAsGuest (roomUuid, guestName, device = DESKTOP, engine = 'chromium') {
   const browser = await launch(engine)
   const ctx = await newCtx(browser, device)
@@ -183,6 +196,6 @@ async function openRowMenu (row) {
 
 module.exports = {
   BASE_URL, HOST_EMAIL, HOST_DISPLAY, DESKTOP, PHONE, IPHONE, launch, engineAvailable, expectHealthy,
-  setAuthCookie, joinAsHost, joinAsGuest, finishJoin, createMeeting, meetingStatus,
+  setAuthCookie, joinAsHost, joinAsStaff, joinAsGuest, finishJoin, createMeeting, meetingStatus,
   isSharing, roomState, clickable, rect, openPanel, openRowMenu,
 }
