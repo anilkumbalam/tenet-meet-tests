@@ -147,6 +147,16 @@ async function joinAsGuest (roomUuid, guestName, device = DESKTOP, engine = 'chr
   return { browser, ctx, page, name: guestName }
 }
 
+async function openAsGuest (roomUuid, guestName, device = DESKTOP, deviceId = null) {
+  const browser = await launch('chromium')
+  const ctx = await newCtx(browser, device)
+  const page = await ctx.newPage()
+  track(page)
+  const res = await page.request.post(`${BASE_URL}/api/guest-join/${roomUuid}`, { data: { display_name: guestName, device_id: deviceId || undefined } })
+  const body = await res.json().catch(() => ({}))
+  if (res.ok() && body.url) await page.goto(`${BASE_URL}${body.url}`, { waitUntil: 'domcontentloaded' })
+  return { browser, ctx, page, name: guestName, status: res.status(), body }
+}
 async function createMeeting (browser, prefix) {
   const ctx = await browser.newContext({ ignoreHTTPSErrors: true })
   await setAuthCookie(ctx)
@@ -196,6 +206,6 @@ async function openRowMenu (row) {
 
 module.exports = {
   BASE_URL, HOST_EMAIL, HOST_DISPLAY, DESKTOP, PHONE, IPHONE, launch, engineAvailable, expectHealthy,
-  setAuthCookie, joinAsHost, joinAsStaff, joinAsGuest, finishJoin, createMeeting, meetingStatus,
+  setAuthCookie, joinAsHost, joinAsStaff, joinAsGuest, openAsGuest, finishJoin, createMeeting, meetingStatus,
   isSharing, roomState, clickable, rect, openPanel, openRowMenu,
 }
