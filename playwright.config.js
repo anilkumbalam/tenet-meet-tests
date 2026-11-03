@@ -2,6 +2,7 @@ const { defineConfig } = require('@playwright/test')
 const { BASE_URL } = require('./tests/env')
 
 module.exports = defineConfig({
+  globalTeardown: require.resolve('./global-teardown.js'),   // deletes the meetings the tests created
   testDir: './tests',
   timeout: 120000,
   globalTimeout: 1800000,
