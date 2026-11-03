@@ -1,7 +1,7 @@
 // 29 - Waiting room: with it on, guests wait on a separate page (no connection to the meeting) until the host lets
 // them in; invited staff go straight in, other staff wait; the host can turn people away, message the waiting room,
 // send someone back to wait, or finish with them; turning the waiting room off lets everyone in; someone let in
-// later does not see files shared before they joined.
+// later does not see files shared before they joined; someone sent back sees "Back in the waiting room".
 const { test, expect } = require('@playwright/test')
 const H = require('./meet-helpers')
 
@@ -86,7 +86,9 @@ test.describe.serial('29 - Waiting room', () => {
     await expect(row).toBeVisible({ timeout: 10000 })
     await row.locator('.wr-back').click()
     await expect(g.page).toHaveURL(/\/wait\//, { timeout: 15000 })
+    await expect(headOf(g), 'sent back: own wording').toHaveText('Back in the waiting room', { timeout: 10000 })
     await expect(rowFor('Guest Priya').locator('.wr-admit')).toBeVisible({ timeout: 10000 })
+    await expect(rowFor('Guest Priya').locator('.wr-tag')).toContainText('Sent back')
     await rowFor('Guest Priya').locator('.wr-admit').click()
     await expect(g.page).toHaveURL(/\/meeting\//, { timeout: 15000 })
     await H.finishJoin(g.page, 'Guest Priya')
