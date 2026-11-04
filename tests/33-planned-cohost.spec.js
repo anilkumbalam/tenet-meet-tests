@@ -48,7 +48,7 @@ test.describe.serial('33 - Planned co-host', () => {
     expect([s.moderator_email, Boolean(s.moderator_auto)]).toEqual([PLANNED, false])
   })
 
-  test('schedule form lists the Tenet addresses from the invite field', async ({ browser }) => {
+  test('schedule form: co-host dropdown of the invited people, guests not selectable', async ({ browser }) => {
     const ctx = await browser.newContext({ ignoreHTTPSErrors: true }); await H.setAuthCookie(ctx)
     const page = await ctx.newPage()
     try {
@@ -56,10 +56,15 @@ test.describe.serial('33 - Planned co-host', () => {
       await page.waitForFunction(() => typeof window.openSchedule === 'function' && window.TenetPlannedCohost)
       await page.evaluate(() => openSchedule())
       await expect(page.locator('#mPlannedBox')).toContainText('Co-host (optional)')
+      const pick = page.locator('#mPlannedCohost')
+      await expect(pick.locator('option').first()).toHaveText('Invite a Tenet colleague above first')
       await page.locator('#mInvited').fill('a.b@tenetnetworks.com, client@example.com')
-      await expect(page.locator('#mPlannedBox input[type=checkbox]')).toHaveCount(1)
-      await page.locator('#mPlannedBox input[type=checkbox]').check()
+      await expect(pick.locator('option')).toHaveCount(3)                               // none + 2 invited
+      await expect(pick.locator('option[value="client@example.com"]'), 'guests cannot be co-host').toBeDisabled()
+      await pick.selectOption('a.b@tenetnetworks.com')
       expect(await page.evaluate(() => TenetPlannedCohost.value())).toBe('a.b@tenetnetworks.com')
+      await page.locator('#mInvited').fill('client@example.com')                          // co-host taken off the invite list
+      expect(await page.evaluate(() => TenetPlannedCohost.value()), 'no longer invited: no co-host').toBe('')
     } finally { await ctx.close() }
   })
 })
