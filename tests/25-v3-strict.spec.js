@@ -1,7 +1,8 @@
 // 25 - Meeting page v3: strict security policy (no inline scripts) and the page version switch.
 // v3 is served with script-src 'self' (no 'unsafe-inline'); v2 keeps the relaxed policy; v1 is retired (?ui=1 gives v2);
 // only one policy header per page (the app sends it, not nginx). In a v3 meeting every button works and the
-// browser blocks nothing. The test server's IP is in MEET_UI_V3_IPS, so the whole suite runs on v3.
+// browser blocks nothing. The test server's IP is in MEET_UI_V4_IPS, so the whole suite runs on v4 (the redesign);
+// v3 (strict too) is still checked with ?ui=3.
 const { test, expect, request } = require('@playwright/test')
 const H = require('./meet-helpers')
 
@@ -20,13 +21,16 @@ test.describe.serial('25 - Meeting page v3 (strict security policy)', () => {
     const r = await request.newContext({ ignoreHTTPSErrors: true })
     try {
       const v3 = await r.get(`${H.BASE_URL}/meeting/${roomUuid}`)
-      expect(v3.headers()['x-meet-ui'], 'test server gets v3').toBe('3')
+      expect(v3.headers()['x-meet-ui'], 'test server gets v4 (redesign)').toBe('4')
       expect(cspOf(v3).length, 'one policy header').toBe(1)
-      expect(scriptSrc(cspOf(v3)[0]), 'v3: no inline scripts allowed').toBe("'self'")
+      expect(scriptSrc(cspOf(v3)[0]), 'v4: no inline scripts allowed').toBe("'self'")
       const v2 = await r.get(`${H.BASE_URL}/meeting/${roomUuid}?ui=2`)
       expect(v2.headers()['x-meet-ui']).toBe('2')
       expect(scriptSrc(cspOf(v2)[0])).toContain("'unsafe-inline'")
-      await r.get(`${H.BASE_URL}/meeting/${roomUuid}?ui=3`)                 // back to v3 for this context
+      const v3b = await r.get(`${H.BASE_URL}/meeting/${roomUuid}?ui=3`)    // v3: what everyone else gets
+      expect(v3b.headers()['x-meet-ui'], 'v3 still served').toBe('3')
+      expect(scriptSrc(cspOf(v3b)[0]), 'v3: no inline scripts allowed').toBe("'self'")
+      await r.get(`${H.BASE_URL}/meeting/${roomUuid}?ui=4`)                 // back to v4 for this context
       const v1 = await (await request.newContext({ ignoreHTTPSErrors: true })).get(`${H.BASE_URL}/meeting/${roomUuid}?ui=1`)
       expect(v1.headers()['x-meet-ui'], 'v1 retired: ?ui=1 is ignored').not.toBe('1')
       for (const p of ['/start', `/join/${roomUuid}`]) expect(cspOf(await r.get(H.BASE_URL + p)).length, p + ': one policy header').toBe(1)
