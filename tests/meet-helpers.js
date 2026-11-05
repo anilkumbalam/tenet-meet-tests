@@ -209,3 +209,22 @@ module.exports = {
   setAuthCookie, joinAsHost, joinAsStaff, joinAsGuest, openAsGuest, finishJoin, createMeeting, meetingStatus,
   isSharing, roomState, clickable, rect, openPanel, openRowMenu,
 }
+
+// v4 toolbar (stage 1): End meeting lives in the Leave menu; Grid/Speaker/Strip in the View menu (More on phones).
+async function canEnd (page) {   // the app shows #btn-end-meeting to people allowed to end the meeting
+  return page.evaluate(() => { const b = document.getElementById('btn-end-meeting'); return Boolean(b) && getComputedStyle(b).display !== 'none' })
+}
+async function clickLeave (page) {   // Leave; if the Leave menu opens (people who can end), pick "Leave meeting"
+  await page.locator('#btn-end').click()
+  const only = page.locator('#tb-leave-only')
+  if (await only.isVisible().catch(() => false)) await only.click()
+}
+async function chooseView (page, sel) {   // open the View menu (or More on a phone) when the button is inside it
+  const item = page.locator(sel)
+  if (!(await item.isVisible().catch(() => false))) {
+    const view = page.locator('#btn-view'), more = page.locator('#btn-more')
+    if (await view.isVisible().catch(() => false)) await view.click(); else if (await more.isVisible().catch(() => false)) await more.click()
+  }
+  await item.click()
+}
+Object.assign(module.exports, { canEnd, clickLeave, chooseView })

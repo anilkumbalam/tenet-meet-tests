@@ -11,35 +11,43 @@ const PHONES = [
   ['phone sideways 844x390', { ...H.PHONE, viewport: { width: 844, height: 390 } }, 'chromium'],
   ['iPhone (Safari engine)', H.IPHONE, 'webkit'],
 ]
-const TOOLBAR = ['#vbtn-grid', '#vbtn-speaker', '#vbtn-strip', '#btn-mic', '#btn-cam', '#btn-panel', '#btn-end']
-const HOST_TOOLS = ['#btn-copy-link', '#btn-lock', '#btn-end-meeting']           // host / co-host only
+const TOOLBAR = ['#btn-mic', '#btn-cam', '#btn-panel', '#btn-more', '#btn-end']
+const MORE = ['#vbtn-grid', '#vbtn-speaker', '#vbtn-strip']                    // in the More menu
+const HOST_TOOLS = ['#btn-copy-link', '#btn-lock']                             // host / co-host only, also in More
 
 let meetingId, roomUuid, api, host, desk, mobile, n = 0
 
-// every toolbar button shown, on screen, not covered, all on one row; Share hidden; page not wider than the phone.
-// With host tools: those are on screen too, on their own second row below the main one (one row when sideways).
-async function expectToolbarFits (page, hostTools = false) {
-  const all = hostTools ? TOOLBAR.concat(HOST_TOOLS) : TOOLBAR
-  const s = await page.evaluate(ids => {
+// every toolbar button shown, on screen, not covered, on one row; Share hidden; page not wider than the phone.
+// More opens on screen with View (plus Copy link / Lock for a host or co-host); End meeting is in the Leave menu.
+async function measure (page, ids) {
+  return page.evaluate(ids => {
     const out = { iw: innerWidth, ih: innerHeight, sw: document.documentElement.scrollWidth, share: getComputedStyle(document.getElementById('btn-screen')).display, b: {} }
     for (const id of ids) { const r = document.querySelector(id).getBoundingClientRect(); out.b[id] = { l: Math.round(r.left), r: Math.round(r.right), t: Math.round(r.top), b: Math.round(r.bottom) } }
     return out
-  }, all)
-  const info = JSON.stringify(s)
+  }, ids)
+}
+async function expectToolbarFits (page, hostTools = false) {
+  const s = await measure(page, TOOLBAR), info = JSON.stringify(s)
   expect(s.sw, 'page wider than the phone ' + info).toBeLessThanOrEqual(s.iw + 1)
   expect(s.share, 'Share is hidden on phones').toBe('none')
-  for (const id of all) {
+  for (const id of TOOLBAR) {
     const r = s.b[id]
     expect(r.l >= -1 && r.r <= s.iw + 1 && r.b <= s.ih + 1, id + ' on screen ' + info).toBe(true)
     expect(await H.clickable(page, id), id).toBe('ok')
   }
   const tops = TOOLBAR.map(id => s.b[id].t)
   expect(Math.max(...tops) - Math.min(...tops), 'toolbar on one row ' + info).toBeLessThanOrEqual(8)
-  if (hostTools) {
-    const ht = HOST_TOOLS.map(id => s.b[id].t)
-    expect(Math.max(...ht) - Math.min(...ht), 'host tools on one row ' + info).toBeLessThanOrEqual(8)
-    if (s.iw <= 600) expect(Math.min(...ht), 'host tools on a second row below ' + info).toBeGreaterThan(Math.max(...tops) + 20)
+  await page.locator('#btn-more').click()
+  const inMenu = hostTools ? MORE.concat(HOST_TOOLS) : MORE
+  const m = await measure(page, inMenu), minfo = JSON.stringify(m)
+  for (const id of inMenu) {
+    const r = m.b[id]
+    expect(r.l >= -1 && r.r <= m.iw + 1 && r.t >= -1 && r.b <= m.ih + 1, id + ' in More, on screen ' + minfo).toBe(true)
+    expect(await H.clickable(page, id), id).toBe('ok')
   }
+  await page.keyboard.press('Escape')
+  await expect(page.locator('#tb-more-menu')).toBeHidden()
+  if (hostTools) expect(await H.canEnd(page), 'End meeting reachable from Leave').toBe(true)
 }
 const panelOpen = page => page.evaluate(() => document.getElementById('right-panel').classList.contains('hidden') === false)
 async function showChatTab (page) {
@@ -156,14 +164,14 @@ test.describe.serial('19 - Phones', () => {
     await H.expectHealthy(mobile)
   })
 
-  test('made co-host on the phone: Copy Link, Lock, End Meeting on a second row, all on screen', async () => {
+  test('made co-host on the phone: Copy link and Lock in More, End meeting from Leave, all on screen', async () => {
     const p = mobile.page
     await H.openPanel(host.page)
     await host.page.evaluate(() => window.TenetPeople && window.TenetPeople.setTab('people'))
     const row = host.page.locator('.participant-item').filter({ hasText: 'Guest Mobile' })
     await H.openRowMenu(row)
     await row.locator('.p-mod-btn', { hasText: 'Make co-host' }).click()
-    await expect(p.locator('#btn-end-meeting')).toBeVisible({ timeout: 15000 })
+    await expect.poll(() => H.canEnd(p), { timeout: 15000 }).toBe(true)
     await expectToolbarFits(p, true)
     await p.setViewportSize({ width: 844, height: 390 })           // sideways: everything on one row
     await p.waitForTimeout(800)
@@ -172,7 +180,7 @@ test.describe.serial('19 - Phones', () => {
     await p.waitForTimeout(800)
     await H.openRowMenu(row)                                         // back to a normal guest for the next tests
     await row.locator('.p-mod-btn', { hasText: 'Remove co-host' }).click()
-    await expect(p.locator('#btn-end-meeting')).toBeHidden({ timeout: 15000 })
+    await expect.poll(() => H.canEnd(p), { timeout: 15000 }).toBe(false)
     await expectToolbarFits(p)
     await H.expectHealthy(mobile)
   })

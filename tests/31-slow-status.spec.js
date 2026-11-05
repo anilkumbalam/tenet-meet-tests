@@ -17,7 +17,7 @@ test('host buttons and mic do not wait for a slow status reply', async ({ browse
     await page.goto(`${H.BASE_URL}${url}`, { waitUntil: 'domcontentloaded' })
     await H.finishJoin(page, 'Host')
     const t0 = Date.now()
-    await expect(page.locator('#btn-end-meeting'), 'host buttons at once').toBeVisible({ timeout: 3000 })
+    await expect.poll(() => H.canEnd(page), { message: 'host buttons at once', timeout: 3000 }).toBe(true)
     await expect.poll(() => page.evaluate(() => Boolean(window.__tenetRoom && window.__tenetRoom.localParticipant.isMicrophoneEnabled)), { timeout: 12000 }).toBe(true)
     expect(Date.now() - t0, 'mic started well before the 20 s reply').toBeLessThan(12000)
     expect(held, 'the status reply really was held back').toBeGreaterThan(0)

@@ -45,10 +45,10 @@ test.describe.serial('25 - Meeting page v3 (strict security policy)', () => {
       await expect(host.page.locator('#video-grid .video-tile')).toHaveCount(2, { timeout: 30000 })   // pre-join Join button worked (bound, not inline)
       expect(await host.page.evaluate(() => document.querySelectorAll('[onclick]').length), 'no inline handlers on the page').toBe(0)
       for (const [btn, cls] of [['#vbtn-speaker', 'view-speaker'], ['#vbtn-strip', 'view-strip']]) {
-        await host.page.locator(btn).click()
+        await H.chooseView(host.page, btn)
         await expect.poll(() => host.page.evaluate(() => document.body.className), { timeout: 5000 }).toContain(cls)
       }
-      await host.page.locator('#vbtn-grid').click()                            // grid is the plain layout (no view- class)
+      await H.chooseView(host.page, '#vbtn-grid')                            // grid is the plain layout (no view- class)
       await expect.poll(() => host.page.evaluate(() => /view-/.test(document.body.className)), { timeout: 5000 }).toBe(false)
       await host.page.locator('#btn-lock').click()                             // Lock button (was unreachable before)
       await expect.poll(async () => (await H.meetingStatus(api, meetingId)).lock_room, { timeout: 10000 }).toBe(true)

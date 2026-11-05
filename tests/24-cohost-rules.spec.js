@@ -48,13 +48,13 @@ test.describe.serial('24 - Co-host rules', () => {
     try {
       await expect(host.page.locator('#video-grid .video-tile')).toHaveCount(3, { timeout: 30000 })
       const gid = await idOf(guest), sid = await idOf(staff)
-      await host.page.locator('#btn-end').click()
+      await H.clickLeave(host.page)
       await expect(host.page.locator('#hl-dialog')).toBeVisible({ timeout: 5000 })
       expect(await host.page.locator('#hl-dialog input[name="hl-who"]:checked').getAttribute('value'), 'Tenet staff preselected').toBe(sid)
       await host.page.locator(`#hl-dialog input[value="${gid}"]`).check()
       await host.page.locator('#hl-go').click()
       await expect.poll(async () => { const s = await H.meetingStatus(m.api, m.meetingId); return [s.moderator_identity, s.moderator_auto] }, { timeout: 20000 }).toEqual([gid, false])
-      await expect(guest.page.locator('#btn-end-meeting'), 'chosen co-host can end').toBeVisible({ timeout: 20000 })
+      await expect.poll(() => H.canEnd(guest.page), { message: 'chosen co-host can end', timeout: 20000 }).toBe(true)
       expect(await asPage(guest.page, 'POST', `/api/meetings/${m.meetingId}/kick/${encodeURIComponent(sid)}`), 'chosen co-host can remove').toBeLessThan(300)
       await H.expectHealthy(guest)
     } finally { await cleanup(m, [guest, staff, host]) }
@@ -65,7 +65,7 @@ test.describe.serial('24 - Co-host rules', () => {
     const host = await H.joinAsHost(m.meetingId), guest = await H.joinAsGuest(m.roomUuid, 'Guest Ends')
     try {
       await expect(host.page.locator('#video-grid .video-tile')).toHaveCount(2, { timeout: 30000 })
-      await host.page.locator('#btn-end').click()
+      await H.clickLeave(host.page)
       await host.page.locator('#hl-end').click()
       await expect.poll(() => endedTitle(guest.page), { timeout: 10000 }).toBe('Meeting Ended')
     } finally { await cleanup(m, [guest, host]) }

@@ -33,7 +33,7 @@ test.describe.serial('33 - Planned co-host', () => {
   test('the planned co-host joins before the host: co-host with full powers, and guests can come in', async () => {
     const pc = await H.joinAsStaff(m.meetingId, PLANNED, 'Planned One'); people.push(pc)
     await expect.poll(async () => { const s = await H.meetingStatus(m.api, m.meetingId); return [s.moderator_email, Boolean(s.moderator_auto)] }, { timeout: 15000 }).toEqual([PLANNED, false])
-    await expect(pc.page.locator('#btn-end-meeting'), 'full powers: End meeting shown').toBeVisible({ timeout: 20000 })
+    await expect.poll(() => H.canEnd(pc.page), { message: 'full powers: can end the meeting', timeout: 20000 }).toBe(true)
     const g = await (await m.api.request.post(`${H.BASE_URL}/api/guest-join/${m.roomUuid}`, { data: { display_name: 'Guest Lee', device_id: 'test-dev-lee-000001' } })).json()
     expect(g.waitingForHost, 'guests do not wait for the host when a planned co-host is in').toBeFalsy()
     expect(g.url || '').toMatch(/\/meeting\//)
