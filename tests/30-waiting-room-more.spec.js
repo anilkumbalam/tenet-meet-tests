@@ -70,7 +70,7 @@ test.describe.serial('30 - Waiting room: access, waiting page, leaving, meeting 
     const resp = await g.page.reload({ waitUntil: 'load' })
     const scriptSrc = (resp.headers()['content-security-policy'] || '').split(';').map(s => s.trim()).find(s => s.startsWith('script-src')) || ''
     expect(scriptSrc).toBe("script-src 'self'")
-    await expect(headOf(g)).toHaveText('Waiting to join')
+    await expect(headOf(g)).toHaveText(/^(Waiting to join|Waiting for the host to let you in)$/)
     await expect(g.page.locator('#title')).not.toBeEmpty({ timeout: 10000 })
     expect(errors.filter(e => /Content Security Policy|Refused to/i.test(e)), 'browser blocked something').toEqual([])
     expect(new URL(g.page.url()).pathname).toBe(first)

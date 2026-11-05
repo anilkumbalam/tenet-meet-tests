@@ -100,7 +100,22 @@ async function newCtx (browser, device = DESKTOP) {
   return ctx
 }
 
-async function finishJoin (page, who) {
+async function finishJoin (page, ...rest) {   // v4: let in from the waiting room = joins directly, no Ready to join
+  if (!/\/meeting\//.test(page.url())) return finishJoinPrejoin(page, ...rest)   // not on the meeting page yet: usual steps
+  let how = null
+  for (let i = 0; i < 4 && !how; i++) {
+    try {
+      how = await (await page.waitForFunction(() => {
+        const s = document.getElementById('av-check-screen')
+        if (s && s.classList.contains('show')) return 'prejoin'
+        return window.__tenetFromWaiting ? 'direct' : false
+      }, null, { timeout: 10000 })).jsonValue()
+    } catch (e) { if (!/context|navigat/i.test(e.message)) break }   // not shown in time: leave it to the usual steps
+  }
+  if (how !== 'direct') return finishJoinPrejoin(page, ...rest)
+  await page.waitForFunction(() => window.__tenetRoom && window.__tenetRoom.state === 'connected', null, { timeout: 30000 })
+}
+async function finishJoinPrejoin (page, who) {
   const avBtn = page.locator('#av-join-btn')
   await avBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => avBtn.click()).catch(() => {})
   try { await expect(page.locator('#loading-screen')).toHaveClass(/hidden/, { timeout: 25000 }) }

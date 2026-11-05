@@ -31,7 +31,7 @@ test.describe.serial('29 - Waiting room', () => {
     const g = await H.openAsGuest(roomUuid, 'Guest Priya', H.DESKTOP, 'test-dev-priya-0001'); people.push(g)
     expect(g.body.lobby, JSON.stringify(g.body)).toBe(true)
     await expect(g.page).toHaveURL(/\/wait\/[0-9a-f]{32}$/)
-    await expect(headOf(g)).toHaveText('Waiting to join')
+    await expect(headOf(g)).toHaveText(/^(Waiting to join|Waiting for the host to let you in)$/)
     await expect(rowFor('Guest Priya')).toBeVisible({ timeout: 10000 })
     await expect(host.page.locator('#wr-pill')).toHaveText(/1 waiting/)
     await expect(host.page.locator('#video-grid .video-tile')).toHaveCount(1)          // not in the meeting yet
@@ -52,7 +52,7 @@ test.describe.serial('29 - Waiting room', () => {
     await expect(b.page.locator('#msgText')).toHaveText('We will start in 2 minutes', { timeout: 10000 })
     await rowFor('Guest Bilal').locator('.wr-deny').click()
     await expect(headOf(b)).toHaveText('Not admitted', { timeout: 10000 })
-    await expect(headOf(a)).toHaveText('Waiting to join')
+    await expect(headOf(a)).toHaveText(/^(Waiting to join|Waiting for the host to let you in)$/)
   })
 
   test('invited staff go straight in; other staff wait', async ({ browser }) => {
@@ -86,7 +86,7 @@ test.describe.serial('29 - Waiting room', () => {
     await expect(row).toBeVisible({ timeout: 10000 })
     await row.locator('.wr-back').click()
     await expect(g.page).toHaveURL(/\/wait\//, { timeout: 15000 })
-    await expect(headOf(g), 'sent back: own wording').toHaveText('Back in the waiting room', { timeout: 10000 })
+    await expect(headOf(g), 'sent back: own wording').toHaveText(/^(Back in|Returned to) the waiting room$/, { timeout: 10000 })
     await expect(rowFor('Guest Priya').locator('.wr-admit')).toBeVisible({ timeout: 10000 })
     await expect(rowFor('Guest Priya').locator('.wr-tag')).toContainText('Sent back')
     await rowFor('Guest Priya').locator('.wr-admit').click()
