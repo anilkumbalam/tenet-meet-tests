@@ -63,6 +63,8 @@ test.describe.serial('38 - v4 join page', () => {
     await expect(page.locator('#err-msg')).toHaveText('Please enter your name.')
     const old = await m.api.request.get(`${B}/join/${m.roomUuid}?ui=3`)
     expect(await old.text()).toContain(`var roomUuid=${JSON.stringify(m.roomUuid)}`)
+    const r4 = await m.api.request.get(`${B}/join/${m.roomUuid}?ui=4`)
+    expect(r4.headers()['set-cookie'] || '', '?ui=4 on a guest link is remembered').toContain('meet_ui=4')
     await H.expectHealthy(host)
   })
 })
