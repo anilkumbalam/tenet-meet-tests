@@ -50,6 +50,9 @@ test.describe.serial('38 - v4 join page', () => {
     await expect(t).toBeVisible({ timeout: 30000 })
     await expect(t).toHaveClass(/ts-novideo/, { timeout: 15000 })
     await expect.poll(() => t.getAttribute('data-mic'), { timeout: 15000 }).toMatch(/^(on|speaking)$/)
+    await expect(page.locator('#btn-cam'), 'joined with the camera off: button shows off').toHaveClass(/\boff\b/)
+    await page.locator('#btn-cam').click()
+    await expect(t, 'one click turns the camera on').not.toHaveClass(/ts-novideo/, { timeout: 15000 })
     expect(errors.filter(e => /Content Security Policy|Refused to/i.test(e)), 'browser blocked something').toEqual([])
   })
 
