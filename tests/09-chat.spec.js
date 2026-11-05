@@ -155,11 +155,13 @@ test.describe('09 - Chat (host + 1 guest)', () => {
   // ── Tests ──────────────────────────────────────────────────────────────────
 
   test('chat input and send button are visible', async () => {
+    await require('./meet-helpers').showChat(hostPage)
     await expect(hostPage.locator('#chat-input')).toBeVisible()
     await expect(hostPage.locator('#chat-send')).toBeVisible()
   })
 
   test('guest chat input and send button are visible', async () => {
+    await require('./meet-helpers').showChat(guestPage)
     await expect(guestPage.locator('#chat-input')).toBeVisible()
     await expect(guestPage.locator('#chat-send')).toBeVisible()
   })

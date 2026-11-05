@@ -103,6 +103,7 @@ test.describe.serial('29 - Waiting room', () => {
   test('turning the waiting room off lets everyone waiting in', async () => {
     const c = await H.openAsGuest(roomUuid, 'Guest Chen'); people.push(c)
     await expect(rowFor('Guest Chen')).toBeVisible({ timeout: 10000 })
+    await H.openHostSettings(host.page)
     await host.page.locator('#wr-switch').uncheck()
     await expect(c.page).toHaveURL(/\/meeting\//, { timeout: 15000 })
     const d = await H.openAsGuest(roomUuid, 'Guest Dev'); people.push(d)

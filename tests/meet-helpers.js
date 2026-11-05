@@ -228,3 +228,14 @@ async function chooseView (page, sel) {   // open the View menu (or More on a ph
   await item.click()
 }
 Object.assign(module.exports, { canEnd, clickLeave, chooseView })
+
+// v4 side panel (stage 3): People / Chat are tabs; the host's switches are in the Host settings popover (⚙).
+async function showChat (page) { await page.evaluate(() => window.TenetPeople && window.TenetPeople.setTab('chat')) }
+async function openHostSettings (page) {
+  const pop = page.locator('#hs-pop')
+  if (await pop.isVisible().catch(() => false)) return
+  if (await page.locator('#hs-btn').count() === 0) return               // v2 / v3 pages: switches are in the panel
+  await page.locator('#hs-btn').click()
+  await pop.waitFor({ state: 'visible', timeout: 5000 })
+}
+Object.assign(module.exports, { showChat, openHostSettings })

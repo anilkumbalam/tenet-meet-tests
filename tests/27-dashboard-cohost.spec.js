@@ -25,6 +25,7 @@ test.describe.serial('27 - Dashboard and in-meeting co-host setting', () => {
     try {
       await expect(host.page.locator('#video-grid .video-tile')).toHaveCount(2, { timeout: 30000 })
       for (const p of [host.page, guest.page]) { await H.openPanel(p); await p.evaluate(() => window.TenetPeople && window.TenetPeople.setTab('people')) }
+      await H.openHostSettings(host.page)
       const sel = host.page.locator('#cc-select')
       await expect(sel).toBeVisible({ timeout: 15000 })
       await expect(sel).toHaveValue('staff_guests')

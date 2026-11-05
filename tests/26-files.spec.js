@@ -54,6 +54,7 @@ test.describe.serial('26 - File sharing', () => {
   })
 
   test('host switches file sharing off and on', async () => {
+    await H.openHostSettings(host.page)
     await expect(host.page.locator('#tf-switch')).toBeVisible()
     await host.page.locator('#tf-switch input').uncheck()
     await expect(guest.page.locator('#tf-btn')).toBeHidden({ timeout: 10000 })

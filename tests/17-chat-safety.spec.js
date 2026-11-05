@@ -13,6 +13,7 @@ async function setPanel (page, open) {
 }
 async function guestSays (who, text) {
   await H.openPanel(who.page)
+  await require('./meet-helpers').showChat(who.page)
   await who.page.fill('#chat-input', text)
   await who.page.press('#chat-input', 'Enter')
 }
