@@ -34,7 +34,9 @@ test.describe.serial('20 - Security (outsider)', () => {
     expect(await r.text()).not.toContain('alert(1)')
     const ok = await outsider.get(`${H.BASE_URL}/join/${roomUuid}`)
     expect(ok.status()).toBe(200)
-    expect(await ok.text()).toContain(`var roomUuid=${JSON.stringify(roomUuid)}`)
+    const page = await ok.text()
+    if (ok.headers()['x-meet-ui'] === '4') expect(page).toContain('/v4/js/join-v4.js')      // v4 page: the code is read from the address, never written into the page
+    else expect(page).toContain(`var roomUuid=${JSON.stringify(roomUuid)}`)
   })
 
   test('host makes the guest co-host (setup)', async () => {
