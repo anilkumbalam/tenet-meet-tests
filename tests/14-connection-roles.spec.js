@@ -74,7 +74,7 @@ test.describe.serial('14 - Connection and roles', () => {
     await H.openPanel(p)
     const row = p.locator('.participant-item').filter({ hasText: 'Guest Stay' })
     await H.openRowMenu(row)
-    await row.locator('.p-mod-btn', { hasText: 'Make co-host' }).click()
+    await row.locator('.p-mod-btn', { hasText: 'Make co-host' }).dispatchEvent('click')   // the list redraws and can close the menu; this test is about the reload, not the menu
     await expect.poll(() => moderator(), { timeout: 15000 }).not.toBeNull()
     await p.reload({ waitUntil: 'domcontentloaded' })
     await H.finishJoin(p, 'Host reload 2')

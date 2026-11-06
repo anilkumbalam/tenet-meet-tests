@@ -67,7 +67,7 @@ test.describe.serial('24 - Co-host rules', () => {
       await expect(host.page.locator('#video-grid .video-tile')).toHaveCount(2, { timeout: 30000 })
       await H.clickLeave(host.page)
       await host.page.locator('#hl-end').click()
-      await expect.poll(() => endedTitle(guest.page), { timeout: 10000 }).toBe('Meeting Ended')
+      await expect.poll(() => endedTitle(guest.page), { timeout: 10000 }).toBe('Meeting ended')
     } finally { await cleanup(m, [guest, host]) }
   })
 

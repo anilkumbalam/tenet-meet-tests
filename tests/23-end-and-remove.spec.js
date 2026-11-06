@@ -1,5 +1,5 @@
 // 23 - Ending and removing are final (the meeting page, the server and LiveKit agree).
-// Ending a meeting closes the LiveKit room: everyone sees "Meeting Ended" at once.
+// Ending a meeting closes the LiveKit room: everyone sees "Meeting ended" at once.
 // A removed guest is out: reloading does not bring them back, and the join link refuses that device.
 const { test, expect } = require('@playwright/test')
 const H = require('./meet-helpers')
@@ -9,14 +9,14 @@ const endedTitle = page => page.evaluate(() => { const e = document.getElementBy
 test.describe.serial('23 - Ending and removing are final', () => {
   test.setTimeout(180000)
 
-  test('host ends the meeting: the guest sees "Meeting Ended" within seconds', async ({ browser }) => {
+  test('host ends the meeting: the guest sees "Meeting ended" within seconds', async ({ browser }) => {
     const { meetingId, roomUuid, api } = await H.createMeeting(browser, 'end-final')
     const host = await H.joinAsHost(meetingId), guest = await H.joinAsGuest(roomUuid, 'Guest End')
     try {
       await expect(guest.page.locator('#video-grid .video-tile')).toHaveCount(2, { timeout: 30000 })
       const st = await host.page.evaluate(id => fetch('/api/meetings/' + id + '/end', { method: 'POST' }).then(r => r.status), meetingId)
       expect(st).toBeLessThan(300)
-      await expect.poll(() => endedTitle(guest.page), { timeout: 10000 }).toBe('Meeting Ended')   // not after the 15 s status check
+      await expect.poll(() => endedTitle(guest.page), { timeout: 10000 }).toBe('Meeting ended')   // not after the 15 s status check
     } finally { for (const p of [guest, host]) await p.browser.close().catch(() => {}); await api.close().catch(() => {}) }
   })
 
@@ -26,7 +26,7 @@ test.describe.serial('23 - Ending and removing are final', () => {
     try {
       await expect(guest.page.locator('#video-grid .video-tile')).toHaveCount(2, { timeout: 30000 })
       expect((await api.request.post(`${H.BASE_URL}/api/meetings/${meetingId}/cancel`)).status()).toBeLessThan(300)
-      await expect.poll(() => endedTitle(guest.page), { timeout: 10000 }).toBe('Meeting Ended')
+      await expect.poll(() => endedTitle(guest.page), { timeout: 10000 }).toBe('Meeting ended')
     } finally { for (const p of [guest, host]) await p.browser.close().catch(() => {}); await api.close().catch(() => {}) }
   })
 
