@@ -240,7 +240,7 @@ test.describe.serial('19 - Phones', () => {
     await H.expectHealthy(mobile)
   })
 
-  test('long network drop: shows "Connection lost" with Rejoin that fits the phone (not a frozen page)', async () => {
+  test('long network drop: "Connection lost" fits the phone; when the network returns it rejoins by itself', async () => {
     const p = mobile.page
     await mobile.ctx.setOffline(true)
     await p.evaluate(() => window.__tenetRoom.simulateScenario('signal-reconnect'))
@@ -249,12 +249,11 @@ test.describe.serial('19 - Phones', () => {
     expect(s.sw, JSON.stringify(s)).toBeLessThanOrEqual(s.iw + 1)
     expect(await H.clickable(p, '#rj-go')).toBe('ok')
     expect(await H.clickable(p, '#rj-leave')).toBe('ok')
-    await mobile.ctx.setOffline(false)
     await expect(host.page.locator('#video-grid .video-tile')).toHaveCount(2, { timeout: 60000 })   // others see the phone gone
-    // what Rejoin leads to for a guest is recorded (not judged yet)
-    await p.locator('#rj-go').click()
-    await p.waitForLoadState('domcontentloaded').catch(() => {})
-    await p.waitForTimeout(4000)
-    test.info().annotations.push({ type: 'rejoin (guest)', description: p.url() + ' | state ' + await H.roomState(p).catch(() => '?') })
+    // 6 Nov: when the network returns, the phone rejoins by itself (guest: no Join click), same people as before
+    await mobile.ctx.setOffline(false)
+    await expect.poll(async () => /\/meeting\//.test(p.url()) && await H.roomState(p).catch(() => '?'), { message: 'phone back in the meeting by itself', timeout: 30000, intervals: [1000] }).toBe('connected')
+    await expect(host.page.locator('#video-grid .video-tile')).toHaveCount(3, { timeout: 30000 })
+    await expect(p.locator('#rj-screen')).toHaveCount(0)
   })
 })

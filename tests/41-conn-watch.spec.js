@@ -1,6 +1,8 @@
 // 41 - Stuck reconnect (real meeting, 5 Nov: a laptop's network was suspended; the media library got stuck
 // "reconnecting" and the tab showed a frozen meeting). The watch shows "Reconnecting…" after 3 s and "Connection
-// lost" with Rejoin when it does not recover (45 s; shortened here). A connected page shows neither.
+// lost" with Rejoin when it does not recover (60 s; shortened here). A connected page shows neither, and leaving on
+// purpose never shows the bar (6 Nov: conn-watch.js?v=3 acts only on `reconnecting`, not on the `disconnected`
+// state a page passes through while it leaves).
 const { test, expect } = require('@playwright/test')
 const H = require('./meet-helpers')
 
@@ -23,6 +25,35 @@ test.describe.serial('41 - Stuck reconnect', () => {
     await guest.page.waitForTimeout(4000)
     await expect(guest.page.locator('#cw-bar')).toHaveCount(0)
     await expect(guest.page.locator('#rj-screen')).toHaveCount(0)
+  })
+
+  test('leaving on purpose: no "Reconnecting…" bar, no Connection lost', async () => {
+    const leaver = await H.joinAsGuest(m.roomUuid, 'Guest Leaves')
+    try {
+      const p = leaver.page
+      await expect(host.page.locator('#video-grid .video-tile')).toHaveCount(3, { timeout: 30000 })
+      // Record any appearance of the bar or the Connection lost screen, even a brief one, and even if the page
+      // moves on after leaving (the binding survives navigation; the init script re-arms the watcher).
+      const seen = []
+      await p.exposeBinding('__t41Seen', (_src, what) => { seen.push(what) })
+      const arm = () => {
+        const check = () => {
+          if (document.getElementById('cw-bar')) window.__t41Seen('cw-bar')
+          if (document.getElementById('rj-screen')) window.__t41Seen('rj-screen')
+        }
+        new MutationObserver(check).observe(document.documentElement, { childList: true, subtree: true })
+        check()
+      }
+      await p.addInitScript(arm)
+      await p.evaluate(arm)
+      p.on('dialog', d => d.accept().catch(() => {}))     // in case the page ever asks to confirm
+      await p.locator('#btn-end').click()                 // a guest leaves directly (test 34)
+      await expect(host.page.locator('#video-grid .video-tile'), 'the guest really left').toHaveCount(2, { timeout: 30000 })
+      await p.waitForTimeout(6000)                        // the bar would show after 3 s of a bad state
+      expect(seen, 'no Reconnecting bar or Connection lost after Leave').toEqual([])
+    } finally {
+      await leaver.browser.close().catch(() => {})
+    }
   })
 
   test('stuck reconnecting: "Reconnecting…" bar, then Connection lost with Rejoin', async () => {

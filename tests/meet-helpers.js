@@ -188,7 +188,7 @@ async function meetingStatus (api, meetingId) {
 }
 
 const isSharing = page => page.evaluate(() => Boolean(window.__tenetRoom && window.__tenetRoom.localParticipant && window.__tenetRoom.localParticipant.isScreenShareEnabled))
-const roomState = page => page.evaluate(() => (window.__tenetRoom && window.__tenetRoom.state) || 'none')
+const roomState = page => page.evaluate(() => (window.__tenetRoom && window.__tenetRoom.state) || 'none').catch(() => 'navigating')   // 6 Nov: the page may be rejoining (reload)
 
 // Is the centre of this element actually reachable by a click (not covered by something else)?
 const clickable = (page, sel) => page.evaluate(s => {

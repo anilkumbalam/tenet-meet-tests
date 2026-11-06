@@ -1,7 +1,8 @@
 // 29 - Waiting room: with it on, guests wait on a separate page (no connection to the meeting) until the host lets
 // them in; invited staff go straight in, other staff wait; the host can turn people away, message the waiting room,
 // send someone back to wait, or finish with them; turning the waiting room off lets everyone in; someone let in
-// later does not see files shared before they joined; someone sent back sees "Back in the waiting room".
+// later does not see files shared before they joined; someone sent back sees "Back in the waiting room"; someone
+// turned away after being sent back sees "Thank you for joining" (plain turn-away stays "Not admitted").
 const { test, expect } = require('@playwright/test')
 const H = require('./meet-helpers')
 
@@ -98,6 +99,23 @@ test.describe.serial('29 - Waiting room', () => {
     await expect(g.page.locator('#wr-finished')).toContainText('Thank you', { timeout: 15000 })
     const again = await g.page.request.post(`${H.BASE_URL}/api/guest-join/${roomUuid}`, { data: { display_name: 'Guest Priya', device_id: 'test-dev-priya-0001' } })
     expect(again.status(), 'finished: the same device cannot come back').toBe(403)
+  })
+
+  test('send back, then turn away: "Thank you for joining", not "Not admitted"', async () => {
+    const e = await H.openAsGuest(roomUuid, 'Guest Elena'); people.push(e)
+    await expect(rowFor('Guest Elena')).toBeVisible({ timeout: 10000 })
+    await rowFor('Guest Elena').locator('.wr-admit').click()
+    await expect(e.page).toHaveURL(/\/meeting\//, { timeout: 15000 })
+    await H.finishJoin(e.page, 'Guest Elena')
+    const inRow = host.page.locator('#wr-box .wr-row[data-identity]', { hasText: 'Guest Elena' })
+    await expect(inRow).toBeVisible({ timeout: 15000 })
+    await inRow.locator('.wr-back').click()
+    await expect(e.page).toHaveURL(/\/wait\//, { timeout: 15000 })
+    await expect(headOf(e)).toHaveText(/^(Back in|Returned to) the waiting room$/, { timeout: 10000 })
+    await expect(rowFor('Guest Elena').locator('.wr-deny')).toBeVisible({ timeout: 10000 })
+    await rowFor('Guest Elena').locator('.wr-deny').click()
+    await expect(headOf(e), 'turned away after send back: thank-you, not "Not admitted"').toHaveText('Thank you for joining', { timeout: 10000 })
+    await expect(e.page.locator('#status')).toContainText('ended your part in this meeting')
   })
 
   test('turning the waiting room off lets everyone waiting in', async () => {
