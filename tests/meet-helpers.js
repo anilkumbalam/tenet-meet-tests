@@ -97,6 +97,7 @@ async function expectHealthy (...people) {
 async function newCtx (browser, device = DESKTOP) {
   const ctx = await browser.newContext({ ignoreHTTPSErrors: true, ...device })   // no permission list: it would refuse everything else (e.g. wake lock)
   await ctx.addInitScript(mediaStub)
+  await ctx.addInitScript(() => { window.__tenetNativeDialogs = true })   // 6 Nov: keep the browser boxes; test 44 uses Tenet dialogs
   return ctx
 }
 
