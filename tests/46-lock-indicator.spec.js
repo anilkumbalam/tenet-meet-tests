@@ -12,6 +12,21 @@ const btn = page => page.evaluate(() => { const b = document.getElementById('btn
 const serverLocked = async () => (await H.meetingStatus(api, meetingId)).lock_room
 const noticeText = page => page.evaluate(() => (document.getElementById('notif-area') || {}).textContent || '')
 
+// pairs of top-bar items that overlap, or 'ok'. Items: the bar's own children and the children of its right-hand group.
+const topbarClash = page => page.evaluate(() => {
+  const bar = document.getElementById('topbar'); if (!bar) return 'no top bar'
+  const right = bar.querySelector('.right')
+  const items = [...bar.children].filter(e => e !== right).concat(right ? [...right.children] : [])
+    .filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden' })
+  const name = e => e.id || (e.className && String(e.className).split(' ')[0]) || e.tagName
+  const bad = []
+  for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
+    const a = items[i].getBoundingClientRect(), b = items[j].getBoundingClientRect()
+    if (a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1) bad.push(name(items[i]) + ' / ' + name(items[j]))
+  }
+  return bad.length ? bad.join(', ') : 'ok'
+})
+
 test.describe.serial('46 - Locked indicator', () => {
 
   test.setTimeout(240000)
@@ -51,6 +66,39 @@ test.describe.serial('46 - Locked indicator', () => {
     await expect.poll(() => H.roomState(host.page), { timeout: 30000 }).toBe('connected')
     await expect.poll(() => btn(host.page), { timeout: 30000 }).toMatch(/^on true .*Locked$/)
     await expect(pill(host.page)).toBeVisible()
+  })
+
+  test('top bar: Locked, someone waiting and an unread message fit beside the meeting name (1280, 1024, 900 px)', async () => {
+    const p = host.page
+    await api.request.post(`${H.BASE_URL}/api/meetings/${meetingId}/waiting-room`, { data: { enabled: true } })
+    const waiter = await H.openAsGuest(roomUuid, 'Guest Waiting')
+    try {
+      await expect.poll(() => p.evaluate(() => /waiting/i.test((document.getElementById('topbar') || {}).textContent || '')), { timeout: 20000 }).toBe(true)
+      const open = await p.locator('#right-panel').getAttribute('class').then(c => !(c || '').includes('hidden')).catch(() => false)
+      if (open) { await p.locator('#btn-panel').click(); await p.waitForTimeout(500) }          // unread chat shows only with the panel closed
+      try {                                                                                     // best effort: an unread message from the guest
+        await H.openPanel(guest.page)
+        const box = guest.page.locator('#right-panel textarea, #right-panel input[type="text"]').first()
+        await box.fill('hello from the guest', { timeout: 5000 }); await box.press('Enter')
+      } catch (e) { console.log('[46] could not send the chat message:', String(e.message).split('\n')[0]) }
+      await p.waitForTimeout(2000)
+      const before = p.viewportSize(), out = []
+      try {
+        for (const w of [1280, 1024, 900]) { await p.setViewportSize({ width: w, height: 760 }); await p.waitForTimeout(1200); out.push(w + ': ' + await topbarClash(p)) }
+        const real = out.join(' | ')
+        console.log('[46] meeting name as it is:', real, '|', await p.evaluate(() => (document.getElementById('topbar') || {}).innerText.replace(/\s+/g, ' ')))
+        // the same with a long meeting name (shown only in this browser), to see how much room there is
+        await p.evaluate(() => { const bar = document.getElementById('topbar'), right = bar.querySelector('.right'); const t = [...bar.children].filter(e => e !== right)[1]; if (t) { t.dataset.old = t.textContent; t.textContent = 'Weekly planning review with the Bangalore team' } })
+        const long = []
+        for (const w of [1280, 1024, 900]) { await p.setViewportSize({ width: w, height: 760 }); await p.waitForTimeout(800); long.push(w + ': ' + await topbarClash(p)) }
+        console.log('[46] long meeting name:', long.join(' | '))
+        await p.evaluate(() => { const bar = document.getElementById('topbar'), right = bar.querySelector('.right'); const t = [...bar.children].filter(e => e !== right)[1]; if (t && t.dataset.old != null) t.textContent = t.dataset.old })
+        expect(real).toBe('1280: ok | 1024: ok | 900: ok')
+      } finally { if (before) await p.setViewportSize(before) }
+    } finally {
+      if (waiter && waiter.browser) await waiter.browser.close().catch(() => {})
+      await api.request.post(`${H.BASE_URL}/api/meetings/${meetingId}/waiting-room`, { data: { enabled: false } }).catch(() => {})
+    }
   })
 
   test('host unlocks: the pill goes for everyone, the button says Lock', async () => {

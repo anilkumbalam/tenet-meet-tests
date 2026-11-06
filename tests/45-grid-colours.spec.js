@@ -9,8 +9,8 @@ let meetingId, roomUuid, api, host
 const guests = []
 
 // 'ok', or what is wrong
-const layout = page => page.evaluate(() => {
-  const g = document.getElementById('video-grid'); if (!g) return 'no grid'
+const layout = (page, id = 'video-grid') => page.evaluate(id => {
+  const g = document.getElementById(id); if (!g) return 'no grid'
   const tiles = [...g.querySelectorAll('.video-tile')].filter(t => t.offsetParent !== null)
   if (!tiles.length) return 'no tiles'
   const r = tiles.map(t => t.getBoundingClientRect())
@@ -25,7 +25,7 @@ const layout = page => page.evaluate(() => {
   const firstRow = (list[0][0].left + list[0][full - 1].right) / 2
   const mid = (Math.min(...last.map(x => x.left)) + Math.max(...last.map(x => x.right))) / 2
   return Math.abs(mid - firstRow) <= 3 ? 'ok' : 'last row not centred: ' + Math.round(mid) + ' vs ' + Math.round(firstRow) + ' (grid ' + Math.round(gr.left) + '-' + Math.round(gr.right) + ')'
-})
+}, id)
 
 // 'ok', or the people whose colours differ
 const colours = page => page.evaluate(() => {
@@ -87,9 +87,29 @@ test.describe.serial('45 - Grid and avatar colours', () => {
     } finally { if (before) await host.page.setViewportSize(before) }
   })
 
-  test('Speaker view: nothing is moved', async () => {
-    await host.page.evaluate(() => document.body.classList.add('view-speaker'))
-    await expect.poll(() => host.page.evaluate(() => document.querySelectorAll('#video-grid .video-tile[data-gc]').length), { timeout: 5000 }).toBe(0)
-    await host.page.evaluate(() => document.body.classList.remove('view-speaker'))
+  test('Speaker view (chosen from the View menu): no tile is moved, the side strip shows its tiles whole', async () => {
+    const p = host.page
+    await p.locator('#btn-view').click(); await p.locator('#vbtn-speaker').click()
+    await expect.poll(() => p.evaluate(() => document.body.classList.contains('view-speaker')), { timeout: 5000 }).toBe(true)
+    await p.waitForTimeout(800)
+    expect(await p.evaluate(() => document.querySelectorAll('.video-tile[data-gc]').length), 'tiles still moved sideways').toBe(0)
+    const strip = await p.evaluate(() => { const s = document.getElementById('sidebar-strip'); return s ? { n: s.querySelectorAll('.video-tile').length, over: s.scrollWidth - s.clientWidth } : null })
+    expect(strip && strip.n, 'tiles in the side strip').toBeGreaterThan(0)
+    expect(strip.over, 'side strip wider than its tiles fit (scroll bar)').toBeLessThanOrEqual(1)
+    await p.locator('#btn-view').click(); await p.locator('#vbtn-grid').click()                     // back to Grid: centred again
+    await expect.poll(() => layout(p), { timeout: 10000 }).toBe('ok')
+  })
+  test('Strip view with 3 people pinned (2 + 1): the third is in the middle', async () => {
+    const p = host.page
+    await p.locator('#btn-view').click(); await p.locator('#vbtn-strip').click()
+    await expect.poll(() => p.evaluate(() => document.body.classList.contains('view-strip')), { timeout: 5000 }).toBe(true)
+    const pinned = () => p.evaluate(() => document.querySelectorAll('#strip-grid .video-tile').length)
+    for (let i = 0; i < 8 && (await pinned()) < 3; i++) { await p.locator('#strip-bar .video-tile').first().click(); await p.waitForTimeout(400) }
+    for (let i = 0; i < 8 && (await pinned()) > 3; i++) { await p.locator('#strip-grid .video-tile').last().click(); await p.waitForTimeout(400) }
+    expect(await pinned(), 'people pinned').toBe(3)
+    await expect.poll(() => layout(p, 'strip-grid'), { timeout: 10000 }).toBe('ok')
+    expect(await p.evaluate(() => document.querySelectorAll('#strip-grid .video-tile[data-gc]').length), 'the third tile was moved to the middle').toBe(1)
+    await p.locator('#btn-view').click(); await p.locator('#vbtn-grid').click()
+    await expect.poll(() => layout(p), { timeout: 10000 }).toBe('ok')
   })
 })
