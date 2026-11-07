@@ -44,6 +44,23 @@ test.describe.serial('52 - Dashboard and sign-in lifetime', () => {
     await ctx.close()
   })
 
+  test('signed out in another window: "You\u2019re signed out"; Not now leaves the thin bar with Sign in', async ({ browser }) => {
+    const { ctx, page } = await dashboard(browser, pass({}))
+    await page.goto(`${BASE}/dashboard`)
+    await expect(page.locator('.tab-btn').first()).toBeAttached({ timeout: 15000 })
+    await ctx.clearCookies()                                                                    // as a sign-out in another window does
+    await expect(page.locator('#sg-signin')).toBeVisible({ timeout: 15000 })
+    await expect(page.locator('.sg-card')).toContainText('signed out')
+    await page.locator('#sg-later').click()
+    await expect(page.locator('.sg-card')).toHaveCount(0)
+    await expect(page.locator('#sg-bar')).toBeVisible()
+    await expect(page.locator('#sg-bar-signin')).toBeVisible()
+    await page.getByRole('button', { name: /Start Now/i }).first().click()                   // an action while signed out: the box comes back
+    await expect(page.locator('.sg-card')).toContainText('signed out')
+    await expect(page.locator('#startNowModal')).not.toHaveClass(/open/)
+    await ctx.close()
+  })
+
   test('Start now while hosting a meeting that is on: asked first; Cancel, then Start another', async ({ browser }) => {
     const m = await H.createMeeting(browser, 'hosting-check')
     await m.api.request.post(`${BASE}/api/meetings/${m.meetingId}/start`)
