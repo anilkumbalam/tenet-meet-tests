@@ -1,6 +1,7 @@
 // 52 - Dashboard and sign-in lifetime (7 Nov, item 7 / stage D2: signin-guard.js, start-note.js, server redirect).
 //  - The 5-second refresh of the meeting list is marked as background (it must not keep a sign-in alive).
-//  - When the sign-in ends while the dashboard is open, it says so with a Sign in button.
+//  - When the sign-in ends while the dashboard is open, the meetings are hidden behind "You're signed out" with Sign in
+//    (v4, 8 Nov); signed in again elsewhere -> the page reloads by itself; a stray 401 while still signed in changes nothing.
 //  - Start now while hosting a meeting that is on asks first (Cancel / Go to current meeting / Start another).
 //  - A page opened with an ended sign-in goes to the sign-in page, which says why.
 const { test, expect, request } = require('@playwright/test')
@@ -39,25 +40,37 @@ test.describe.serial('52 - Dashboard and sign-in lifetime', () => {
     await expect(page.locator('#startNowBtn, .tab-btn').first()).toBeAttached({ timeout: 15000 })
     await ctx.addCookies([{ name: 'meet_token', value: pass({ sat: Date.now() - 120 * MIN, act: Date.now() - 61 * MIN }), domain: new URL(BASE).hostname, path: '/', httpOnly: true, secure: BASE.startsWith('https'), sameSite: 'Lax' }])
     await expect(page.locator('#sg-signin')).toBeVisible({ timeout: 15000 })                    // the next 5 s refresh notices
-    await expect(page.locator('.sg-card')).toContainText('Your sign-in has expired')
-    await expect(page.locator('.sg-card')).toContainText('after an hour without use')
+    await expect(page.locator('#sg-out')).toContainText('Your sign-in has expired')
+    await expect(page.locator('#sg-out')).toContainText('after an hour without use')
+    await expect(page.locator('.tab-btn').first()).toBeHidden()                                // the meetings are hidden
     await ctx.close()
   })
 
-  test('signed out in another window: "You\u2019re signed out"; Not now leaves the thin bar with Sign in', async ({ browser }) => {
+  test('signed out in another window: meetings hidden; signing in again elsewhere brings the page back by itself', async ({ browser }) => {
     const { ctx, page } = await dashboard(browser, pass({}))
     await page.goto(`${BASE}/dashboard`)
-    await expect(page.locator('.tab-btn').first()).toBeAttached({ timeout: 15000 })
+    await expect(page.locator('.tab-btn').first()).toBeVisible({ timeout: 15000 })
     await ctx.clearCookies()                                                                    // as a sign-out in another window does
-    await expect(page.locator('#sg-signin')).toBeVisible({ timeout: 15000 })
-    await expect(page.locator('.sg-card')).toContainText('signed out')
-    await page.locator('#sg-later').click()
-    await expect(page.locator('.sg-card')).toHaveCount(0)
-    await expect(page.locator('#sg-bar')).toBeVisible()
-    await expect(page.locator('#sg-bar-signin')).toBeVisible()
-    await page.getByRole('button', { name: /Start Now/i }).first().click()                   // an action while signed out: the box comes back
-    await expect(page.locator('.sg-card')).toContainText('signed out')
-    await expect(page.locator('#startNowModal')).not.toHaveClass(/open/)
+    await expect(page.locator('#sg-out')).toContainText('signed out', { timeout: 15000 })
+    await expect(page.locator('#sg-signin')).toBeVisible()
+    await expect(page.locator('.tab-btn').first()).toBeHidden()
+    await expect(page.locator('.meeting-card')).toHaveCount(0)                                 // nothing left to read or copy
+    await ctx.addCookies([{ name: 'meet_token', value: pass({}), domain: new URL(BASE).hostname, path: '/', httpOnly: true, secure: BASE.startsWith('https'), sameSite: 'Lax' }])   // signed in again in another tab
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')))                       // coming back to the tab
+    await expect(page.locator('#sg-out')).toHaveCount(0, { timeout: 15000 })                  // reloaded by itself
+    await expect(page.locator('.tab-btn').first()).toBeVisible()
+    await ctx.close()
+  })
+
+  test('a stray 401 while still signed in does not sign the page out', async ({ browser }) => {
+    const { ctx, page } = await dashboard(browser, pass({}))
+    await page.goto(`${BASE}/dashboard`)
+    await expect(page.locator('.tab-btn').first()).toBeVisible({ timeout: 15000 })
+    let n = 0
+    await page.route('**/api/meetings*', r => (n++ === 0 ? r.fulfill({ status: 401, contentType: 'application/json', body: '{"error":"Unauthorized"}' }) : r.continue()))
+    await expect.poll(() => n, { timeout: 15000 }).toBeGreaterThanOrEqual(2)                   // the refresh got the 401, then carried on
+    await expect(page.locator('#sg-out')).toHaveCount(0)
+    await expect(page.locator('.tab-btn').first()).toBeVisible()
     await ctx.close()
   })
 
