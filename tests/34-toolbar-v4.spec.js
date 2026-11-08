@@ -1,7 +1,7 @@
 // 34 - v4 toolbar (redesign stage 1): mic/camera/share on the left, View menu + People & chat + Copy link + Lock in
 // the centre, one red Leave on the right. Host: Leave opens "Leave meeting" / "End meeting for everyone"; a guest
 // leaves directly. The View menu switches the layout and its label follows.
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 test.describe.serial('34 - v4 toolbar', () => {

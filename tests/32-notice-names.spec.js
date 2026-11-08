@@ -1,6 +1,6 @@
 // 32 - In-meeting notices show people's names, never the internal guest ID (name_guest_<long number>) or an email
 // (staff without a name: x.y@ -> X).
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 test('mute, joined and left notices show the guest\'s name only', async ({ browser }) => {

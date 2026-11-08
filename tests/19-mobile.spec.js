@@ -2,7 +2,7 @@
 // Toolbar on one row with every button on screen; Chat opens as a full page and works both ways; the red
 // unread icon opens the Chat tab; turning the phone; co-host tools on a phone; the phone's own camera; going to the background;
 // a short network drop recovers by itself; a long one shows "Connection lost" with Rejoin (never a frozen page).
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 const PHONES = [

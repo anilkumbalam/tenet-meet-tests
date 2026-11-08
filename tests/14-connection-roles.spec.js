@@ -1,6 +1,6 @@
 // 14 - Staying in the meeting: screen wake lock, "Connection lost" + Rejoin, and host / co-host roles
 // when the host has two tabs, reloads (automatic vs delegated co-host), or really leaves.
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 let meetingId, roomUuid, api

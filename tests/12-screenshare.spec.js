@@ -1,6 +1,6 @@
 // 12 - Screen sharing: one sharer at a time, host override (Stop sharing / take over),
 // sharer indicator in the People panel, and a protected stop-share route.
-const { test, expect, chromium } = require('@playwright/test')
+const { test, expect, chromium } = require('./guard')
 const jwt = require('jsonwebtoken')
 const { BASE_URL } = require('./env')
 

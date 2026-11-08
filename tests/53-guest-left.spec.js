@@ -2,7 +2,7 @@
 //  - "You left the meeting" with Rejoin and the line "To leave, just close this tab."
 //  - Back from there shows the same screen on the join page — no camera preview, no camera request.
 //  - Rejoin on it gives the normal join page; opening the link afresh also gives the normal join page.
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 let m = {}, host, gctx

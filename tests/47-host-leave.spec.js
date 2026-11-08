@@ -2,7 +2,7 @@
 // Before the fix: Leave -> Leave meeting -> hand-over dialog -> Leave meeting set the co-host, but the dialog's
 // own Leave click only reopened the Leave menu, so the host stayed in the meeting until they clicked Leave again.
 // Checked with the clicks a person makes: the host lands on "You left the meeting" at once; the guest carries on as co-host.
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 const ended = page => page.evaluate(() => { const e = document.getElementById('ended-screen'); return e && e.classList.contains('show') ? (e.querySelector('h2') || {}).textContent : 'still in' })

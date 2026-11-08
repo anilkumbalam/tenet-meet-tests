@@ -2,7 +2,7 @@
 //  - Grid view: every tile has the same size; a last row that is not full sits in the middle.
 //  - The avatar colour of each person is the same on their tile and in the People list.
 // Checked on the host's page with 3, 5 and 7 people (desktop), and with 7 on a phone-sized window.
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 let meetingId, roomUuid, api, host

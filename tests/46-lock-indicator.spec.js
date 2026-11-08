@@ -2,7 +2,7 @@
 //  - Host locks: the host's Lock button turns orange "Locked"; the guest sees the "Locked" pill and a notice within seconds.
 //  - The host reloads: button and pill still say Locked (taken from the server, not from memory).
 //  - Host unlocks: the pill goes for everyone, the button is back to "Lock".
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 let meetingId, roomUuid, api, host, guest

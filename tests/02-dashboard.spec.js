@@ -1,4 +1,4 @@
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const { loginWithZoho, waitForDashboard, clickTab } = require('./helpers')
 
 test.use({ storageState: '.auth/user.json' })

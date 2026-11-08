@@ -2,7 +2,7 @@
 // The sender sends at most 2560x1440 (shape kept), one stream, max 1.5 Mbps / 5 fps; a desktop viewer receives
 // exactly that and sees the whole picture (not cropped or stretched); a phone viewer gets it full screen and
 // the page does not widen. The test machine has no real 4K screen: the fake screen shrinks like Chrome does.
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 const SCREENS = [

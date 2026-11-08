@@ -1,4 +1,4 @@
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const { AUTH_STATE_PATH, waitForDashboard, clickTab, apiCreateMeeting, apiDeleteMeeting, apiEndMeeting } = require('./helpers')
 const { BASE_URL } = require('./env')
 

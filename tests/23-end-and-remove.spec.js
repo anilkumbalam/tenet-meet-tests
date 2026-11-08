@@ -1,7 +1,7 @@
 // 23 - Ending and removing are final (the meeting page, the server and LiveKit agree).
 // Ending a meeting closes the LiveKit room: everyone sees "Meeting ended" at once.
 // A removed guest is out: reloading does not bring them back, and the join link refuses that device.
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 const endedTitle = page => page.evaluate(() => { const e = document.getElementById('ended-screen'); return e && e.classList.contains('show') ? e.querySelector('h2').textContent : 'still in' })

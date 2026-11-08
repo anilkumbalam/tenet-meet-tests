@@ -2,7 +2,7 @@
 // A crafted join link must not get code into the page; the status address must not give out emails or
 // participant numbers; guessed participant numbers must not end a meeting, mute, stop a share, or mark
 // someone as left. People in the meeting (with their key) keep working, including a guest co-host ending it.
-const { test, expect, request } = require('@playwright/test')
+const { test, expect, request } = require('./guard')
 const H = require('./meet-helpers')
 
 let meetingId, roomUuid, api, host, cohost, outsider

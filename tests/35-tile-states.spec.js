@@ -1,7 +1,7 @@
 // 35 - v4 tiles (redesign stage 2): alone message with Copy invite link; name pill with mic icon (on / off);
 // initial circle when the camera is off; a guest whose mic is missing gets "Your microphone isn't connected" and the
 // host sees "No mic" on their tile; Try again fixes it.
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 test.describe.serial('35 - v4 tile states', () => {

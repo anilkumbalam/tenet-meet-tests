@@ -1,6 +1,6 @@
 // 56 - People list order (7 Nov, people-order.js): you, the host, the co-host, then everyone else A to Z.
 // The same for everyone (apart from "you" on top), and a rejoin moves nobody.
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 const HOST = process.env.HOST_EMAIL || 'anil@tenetnetworks.com'
 

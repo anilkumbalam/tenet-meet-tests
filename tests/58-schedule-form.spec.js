@@ -3,7 +3,8 @@
 //  - The co-host picker shows only once a colleague who can be co-host is invited.
 //  - Editing a meeting that uses one of the folded settings opens "More options" by itself.
 //  - Creating a meeting through the form still works (same fields sent as before).
-const { test, expect, request } = require('@playwright/test')
+//  - Today tab: an open meeting with nobody in it is under "Starting now" (not a "Live" card).
+const { test, expect, request } = require('./guard')
 const jwt = require('jsonwebtoken')
 const H = require('./meet-helpers')
 let ENV = {}; try { ENV = require('./env') } catch (e) {}
@@ -71,6 +72,20 @@ test.describe.serial('58 - Schedule form', () => {
     await expect(page.locator('#mWaitingRoom')).toBeChecked()
     await page.locator('#mMore > summary').click()                                   // fold it: the changed setting stays visible
     await expect(page.locator('#mMoreSum')).toContainText('Set: Waiting room on')
+    await ctx.close()
+  })
+
+  test('an open meeting with nobody in it is under "Starting now", not shown as live', async ({ browser }) => {
+    const api = await request.newContext({ baseURL: BASE, extraHTTPHeaders: { cookie: 'meet_token=' + pass() } })
+    const title = 'T58 open ' + Date.now()
+    const r = await api.post('/api/meetings', { data: { title } })                        // started now, nobody joins
+    const m = await r.json(); made.push(m.id); await api.dispose()
+    const { ctx, page } = await dash(browser)
+    const row = page.locator('.row.due', { hasText: title })
+    await expect(row).toBeVisible({ timeout: 15000 })
+    await expect(row).toContainText('Nobody has joined yet')
+    await expect(row.locator('button', { hasText: 'Start' })).toBeVisible()
+    await expect(page.locator('.live', { hasText: title })).toHaveCount(0)
     await ctx.close()
   })
 

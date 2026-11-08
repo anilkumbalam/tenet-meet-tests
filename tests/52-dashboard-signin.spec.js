@@ -4,7 +4,7 @@
 //    (v4, 8 Nov); signed in again elsewhere -> the page reloads by itself; a stray 401 while still signed in changes nothing.
 //  - Start now while hosting a meeting that is on asks first (Cancel / Go to current meeting / Start another).
 //  - A page opened with an ended sign-in goes to the sign-in page, which says why.
-const { test, expect, request } = require('@playwright/test')
+const { test, expect, request } = require('./guard')
 const jwt = require('jsonwebtoken')
 const H = require('./meet-helpers')
 let ENV = {}; try { ENV = require('./env') } catch (e) {}
@@ -59,6 +59,18 @@ test.describe.serial('52 - Dashboard and sign-in lifetime', () => {
     await page.evaluate(() => window.dispatchEvent(new Event('focus')))                       // coming back to the tab
     await expect(page.locator('#sg-out')).toHaveCount(0, { timeout: 15000 })                  // reloaded by itself
     await expect(page.locator('.tab-btn').first()).toBeVisible()
+    await ctx.close()
+  })
+
+  test('the Sign in button on the signed-out page works', async ({ browser }) => {
+    const { ctx, page } = await dashboard(browser, pass({}))
+    await page.goto(`${BASE}/dashboard`)
+    await expect(page.locator('.tab-btn').first()).toBeVisible({ timeout: 15000 })
+    await ctx.clearCookies()
+    await expect(page.locator('#sg-signin')).toBeVisible({ timeout: 15000 })
+    await page.route('**/auth/login*', r => r.fulfill({ status: 200, contentType: 'text/html', body: '<p>sign-in</p>' }))   // not the real sign-in
+    await page.locator('#sg-signin').click()
+    await expect(page).toHaveURL(/\/auth\/login/)
     await ctx.close()
   })
 

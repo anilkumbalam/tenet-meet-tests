@@ -3,7 +3,7 @@
 //  - "Sign in", the Tenet email line, the button to sign-in, the guest note.
 //  - A sign-in message (idle / expired / disabled) shows in the card and hides the guest note.
 //  - Fits a phone (no sideways scrolling).
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 let ENV = {}; try { ENV = require('./env') } catch (e) {}
 const BASE = H.BASE_URL || ENV.BASE_URL

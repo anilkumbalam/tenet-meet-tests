@@ -6,7 +6,7 @@
 //  - The admin's Today / Upcoming show only their own meetings; "All meetings" shows everyone's.
 //  - Our own dialog, never the browser's; a success message only when the server confirms.
 //  - Fits a phone.
-const { test, expect, request } = require('@playwright/test')
+const { test, expect, request } = require('./guard')
 const jwt = require('jsonwebtoken')
 const H = require('./meet-helpers')
 let ENV = {}; try { ENV = require('./env') } catch (e) {}

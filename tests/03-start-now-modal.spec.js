@@ -1,4 +1,4 @@
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const { loginWithZoho, waitForDashboard, openStartNowModal, closeModal } = require('./helpers')
 const { BASE_URL } = require('./env')
 

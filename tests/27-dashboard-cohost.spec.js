@@ -1,7 +1,7 @@
 // 27 - Dashboard tidy-ups and the in-meeting co-host setting: no "Join meeting" box; the schedule form reads
 // "If the host drops out, co-host control goes to"; during a meeting only the host sees that setting (People panel),
 // can change it, and the change is saved for the meeting (covers Start Now meetings, which have no form).
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 test.describe.serial('27 - Dashboard and in-meeting co-host setting', () => {

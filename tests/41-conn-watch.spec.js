@@ -3,7 +3,7 @@
 // lost" with Rejoin when it does not recover (60 s; shortened here). A connected page shows neither, and leaving on
 // purpose never shows the bar (6 Nov: conn-watch.js?v=3 acts only on `reconnecting`, not on the `disconnected`
 // state a page passes through while it leaves).
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 test.describe.serial('41 - Stuck reconnect', () => {

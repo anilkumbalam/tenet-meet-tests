@@ -3,7 +3,7 @@
 // send someone back to wait, or finish with them; turning the waiting room off lets everyone in; someone let in
 // later does not see files shared before they joined; someone sent back sees "Back in the waiting room"; someone
 // turned away after being sent back sees "Thank you for joining" (plain turn-away stays "Not admitted").
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 let meetingId, roomUuid, api, host

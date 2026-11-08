@@ -1,7 +1,7 @@
 // 36 - v4 side panel (redesign stage 3): People / Chat tabs with an unread dot; Host settings popover (⚙) with the
 // waiting-room switch, the Files switch and the co-host rule, for the host only; the waiting card stays hidden while
 // nobody is waiting.
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 test.describe.serial('36 - v4 side panel', () => {

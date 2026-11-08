@@ -1,7 +1,7 @@
 // 51 - Sign-in lifetime (7 Nov, item 7 / stage D1: session.js on the Meet server).
 // Passes are made here with the same key the other tests use, with "signed in" (sat) and "last active" (act) times
 // set in the past, so nothing has to wait an hour or a week.
-const { test, expect, request } = require('@playwright/test')
+const { test, expect, request } = require('./guard')
 const jwt = require('jsonwebtoken')
 const H = require('./meet-helpers')
 let ENV = {}; try { ENV = require('./env') } catch (e) {}

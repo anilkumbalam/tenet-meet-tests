@@ -2,7 +2,7 @@
 // count matches the people in the call (also after a reload), protected actions refuse outsiders and
 // plain guests, and the meeting works in Firefox and on an iPhone (Safari engine).
 // Every test also checks that no page threw an uncaught error or froze.
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 let meetingId, roomUuid, api

@@ -1,7 +1,7 @@
 // 49 - Leaving is immediate (7 Nov, item B: leave-fast.js). "You left the meeting" must appear within half a second
 // of the click, and the leave must still reach everyone: the others see the person gone, and after a hand-over
 // the new co-host gets their powers (the "host left" message still goes out).
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 let m = {}, host, guest

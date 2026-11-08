@@ -1,6 +1,6 @@
 // 31 - A slow server reply does not hold up the host: with the meeting-status reply held back for 20 s, the host
 // still gets the host buttons straight away and the mic starts within the 5 s limit (before: both waited for it).
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 test('host buttons and mic do not wait for a slow status reply', async ({ browser }) => {

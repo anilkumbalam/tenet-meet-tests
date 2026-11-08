@@ -1,7 +1,7 @@
 // 26 - File sharing in meetings: a guest shares a 3 MB file from the chat (📎), the host sees it and downloads
 // the same bytes; outsiders and wrong keys get nothing; programs can be shared (with a caution); the host can switch sharing off;
 // the file is gone as soon as the meeting ends.
-const { test, expect, request } = require('@playwright/test')
+const { test, expect, request } = require('./guard')
 const H = require('./meet-helpers')
 
 let meetingId, roomUuid, api, host, guest, fileId

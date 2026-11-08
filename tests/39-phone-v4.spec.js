@@ -1,6 +1,6 @@
 // 39 - v4 phones (redesign stage 5): More menu opens as a sheet from the bottom; full-page People & Chat has Close;
 // Host settings opens as a bottom sheet with Done; the top bar shows the logo and the meeting title only.
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 test.describe.serial('39 - v4 phones', () => {

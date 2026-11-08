@@ -2,7 +2,7 @@
 //  - One people count: the number on the People & Chat button follows the people in the meeting; the top-bar 👥 pill
 //    and the number after "Participants" are hidden.
 //  - Host settings: both checkboxes start in the same column; "1 GB" stays on one line.
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 let m = {}, host, guest

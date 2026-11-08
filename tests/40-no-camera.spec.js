@@ -3,7 +3,7 @@
 // 1) no camera anywhere: join page shows the camera button off with a note; the meeting joins with it off; clicking it
 //    gives a notice and keeps it off, with no page errors. 2) camera works on the join page but not in the meeting:
 //    the meeting shows it off with "joined with audio only".
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 async function guestPage (b, onlyMeeting) {

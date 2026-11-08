@@ -1,7 +1,7 @@
 // 38 - v4 guest join page and Ready to join (redesign stage 4b): name, camera preview and Join on one page (strict
 // policy); the meeting then opens at once with the settings chosen there; v3 people keep the old page; the meeting
 // page's own Ready to join has the new layout.
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 test.describe.serial('38 - v4 join page', () => {

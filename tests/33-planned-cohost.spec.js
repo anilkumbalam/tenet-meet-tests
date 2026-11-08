@@ -1,7 +1,7 @@
 // 33 - Planned co-host: Tenet staff the host picks in the schedule form become co-host on arrival with full powers,
 // count as "the host is here" for guests, and only Tenet addresses on the invite list are kept. The form shows the
 // Tenet addresses from the invite field as tick boxes.
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 const PLANNED = 'pc.one@tenetnetworks.com', OTHER = 'pc.two@tenetnetworks.com'

@@ -1,6 +1,6 @@
 // 22 - A scheduled meeting that runs past its planned end time is NOT cut off while people are in it.
 // (Meetings still end automatically once nobody has been in them for 15 minutes.)
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 test('scheduled 2-minute meeting keeps going past its end time while people are in it', async ({ browser }) => {

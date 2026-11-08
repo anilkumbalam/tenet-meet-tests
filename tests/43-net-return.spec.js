@@ -5,7 +5,7 @@
 // bar; network back but the meeting stuck -> the page rejoins by itself (fresh pass, same mic / camera; a guest's
 // join page joins without a click), no Connection lost screen; the meeting server not answering -> Rejoin button.
 // The test browsers never really lose the media connection, so "stuck" is forced as in test 41.
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 async function plainPage (browser) {                 // a fresh guest browser that counts camera / mic requests

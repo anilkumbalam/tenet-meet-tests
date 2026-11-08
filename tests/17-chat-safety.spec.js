@@ -1,6 +1,6 @@
 // 17 - Chat and names are safe and work: unread dot on "People & Chat", chat messages and guest names shown as
 // text (never run as HTML/script), a name with an apostrophe still has a working participant menu.
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 let meetingId, roomUuid, api

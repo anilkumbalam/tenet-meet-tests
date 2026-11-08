@@ -2,7 +2,7 @@
 // runs under the strict policy and a reload keeps the same place; Leave takes someone off the host's list; the
 // meeting ending while people wait tells them; the schedule form and create/edit save the setting; an automatic
 // co-host can let people in but cannot send back or finish; the waiting room also works on the v2 meeting page.
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 const asPage = (page, method, path, body) => page.evaluate(([m, p, b]) =>

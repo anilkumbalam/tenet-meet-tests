@@ -1,6 +1,6 @@
 // 24 - Co-host rules: the host's leave dialog (hand over or end for everyone), the per-meeting "If I drop out"
 // setting (staff first / staff only / nobody), and limited powers for a co-host promoted automatically.
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 const STAFF = 'cohost.test@tenetnetworks.com'

@@ -1,4 +1,4 @@
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const { loginWithZoho, AUTH_STATE_PATH } = require('./helpers')
 
 test.describe('Authentication', () => {

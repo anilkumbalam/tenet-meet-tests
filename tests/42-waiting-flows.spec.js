@@ -2,7 +2,7 @@
 // and the guest's page kept waiting). Each sequence checks, at every step, the guest's screen, the host's waiting card
 // (lists, buttons, "N waiting" pill) and the server's record. Rule: every final state must reach the guest's screen.
 // The automatic co-host (can only let in) is covered by test 30; a co-host the host chose is test 13 here.
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 const WAITING = /^(Waiting to join|Waiting for the host to let you in)$/

@@ -1,7 +1,7 @@
 // 44 - Tenet's own dialogs (6 Nov, item 4a: dialog.js). Turn away, waiting-room Message, Finish, Remove and End
 // meeting use our dialog instead of the browser's box: Cancel / Escape does nothing, the main button does exactly
 // what the browser box did. Every other test keeps the browser's boxes (window.__tenetNativeDialogs, set in newCtx).
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 const WAITING = /^(Waiting to join|Waiting for the host to let you in)$/

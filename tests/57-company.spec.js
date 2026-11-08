@@ -2,7 +2,7 @@
 //  - GET /api/company (open): product name, logo, staff domains; nothing else from settings (no mail settings).
 //  - Planned co-host still keeps only staff addresses (now via company.isStaffEmail).
 //  The "Tenet staff only" automatic co-host rule and "staff first" ordering are covered by the existing co-host tests.
-const { test, expect, request } = require('@playwright/test')
+const { test, expect, request } = require('./guard')
 const jwt = require('jsonwebtoken')
 const H = require('./meet-helpers')
 let ENV = {}; try { ENV = require('./env') } catch (e) {}

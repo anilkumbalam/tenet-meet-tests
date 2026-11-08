@@ -2,7 +2,7 @@
 // Seen once on 6 Nov: after coming back the host was labelled "co-host" and the chosen guest lost the label.
 // Repeated on purpose (Rejoin button twice, then a fresh join as from the dashboard), because it did not happen every time.
 // Each round checks the host's page, the guest's page and the server, right after the return and again one status cycle later.
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 let m = {}, host, guest

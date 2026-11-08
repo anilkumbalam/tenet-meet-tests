@@ -1,7 +1,7 @@
 // 37 - v4 waiting room = Ready to join (redesign stage 4): camera preview with mic / camera / device choice while
 // waiting; on admission the meeting opens straight away with those settings (no second Ready to join); sent back shows
 // "Returned to the waiting room"; Leave; people on v3 keep the old waiting page.
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 test.describe.serial('37 - v4 waiting room', () => {

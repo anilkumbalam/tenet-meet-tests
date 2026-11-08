@@ -1,6 +1,6 @@
 // 13 - Meeting layout as people actually see it, on desktop and on a phone:
 // phone grid, upright cameras, the screen-share layout for presenter / desktop viewer / phone viewer.
-const { test, expect } = require('@playwright/test')
+const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
 let meetingId, roomUuid, api

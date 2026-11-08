@@ -3,7 +3,7 @@
 // only one policy header per page (the app sends it, not nginx). In a v3 meeting every button works and the
 // browser blocks nothing. The test server's IP is in MEET_UI_V4_IPS, so the whole suite runs on v4 (the redesign);
 // v3 (strict too) is still checked with ?ui=3.
-const { test, expect, request } = require('@playwright/test')
+const { test, expect, request } = require('./guard')
 const H = require('./meet-helpers')
 
 let meetingId, roomUuid, api

@@ -1,4 +1,4 @@
-const { test, expect, chromium } = require('@playwright/test')
+const { test, expect, chromium } = require('./guard')
 const jwt = require('jsonwebtoken')
 
 const BASE_URL     = process.env.BASE_URL     || 'https://meet.tenetnetworks.com'

@@ -3,7 +3,7 @@
 // a guest's participant key unlocks nothing staff-only; internal ports are closed; source and secret files
 // are not reachable; security headers are present; injection-shaped input gives no database errors.
 // Ownership: only the host or an admin manages a meeting; only the host or co-host removes people in it.
-const { test, expect, request } = require('@playwright/test')
+const { test, expect, request } = require('./guard')
 const net = require('net'), dns = require('dns').promises
 const jwt = require('jsonwebtoken')
 const H = require('./meet-helpers')
