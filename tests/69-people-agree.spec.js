@@ -1,9 +1,11 @@
-// 69 - Everyone sees the same people (9 Nov, v2). Anil saw a meeting where each device listed different people. The same
+// 69 - Everyone sees the same people (9 Nov, v3). Anil saw a meeting where each device listed different people. The same
 // journey runs twice, unlocked and locked, with six people (host, three desktop guests, two phone guests): join, (lock),
 // host reload, a short drop, a long drop on a phone, a late joiner, someone leaving. After each step every page must be
 // in the same room and list exactly the same people (in the call and in the People panel). On a mismatch the test fails
 // and prints what each page saw (a page without a meeting connection reports the screen it shows instead).
 // Locked: someone already in the meeting must get back in after a drop; a newcomer must be kept out until unlocked.
+// v3: one guest (Meera) joins through the real join page, like a person would, and later opens the guest link again in
+// the same browser: she must get the join page (never the lock screen, even while locked) and be back in.
 const { test, expect } = require('./guard')
 const H = require('./meet-helpers')
 
@@ -28,6 +30,25 @@ async function agree (people, step, timeout = 30000) {
 }
 const DROPS = 'WebSocket connection to|Failed to fetch|ERR_INTERNET_DISCONNECTED'
 
+// Join the way a person does: open the guest link, type the name, click Join (the page sends this browser's device id)
+async function joinViaPage (g, roomUuid, name) {
+  await g.page.goto(`${H.BASE_URL}/join/${roomUuid}`, { waitUntil: 'domcontentloaded' })
+  await expect(g.page.locator('#n'), name + ': the join page shows the name box (not the lock screen)').toBeVisible({ timeout: 15000 })
+  await g.page.locator('#n').fill(name)
+  await g.page.locator('#btn').click()
+  await g.page.waitForURL(u => !/\/join\//.test(u.pathname), { timeout: 20000 })
+  await H.finishJoin(g.page, name)
+}
+async function pageGuest (roomUuid, name, device) {
+  const browser = await H.launch()
+  const ctx = await browser.newContext({ ignoreHTTPSErrors: true, ...device })
+  await ctx.addInitScript(() => { window.__tenetNativeDialogs = true })   // same as the helpers' guests (fake camera from Chrome)
+  const page = await ctx.newPage()
+  const g = { browser, ctx, page, name }
+  await joinViaPage(g, roomUuid, name)
+  return g
+}
+
 for (const locked of [false, true]) {
   test.describe.serial('69 - Everyone sees the same people (' + (locked ? 'locked' : 'unlocked') + ', 6 people)', () => {
     test.setTimeout(300000)
@@ -38,7 +59,9 @@ for (const locked of [false, true]) {
     test.beforeAll(async ({ browser }) => {
       m = await H.createMeeting(browser, locked ? 'agree-locked' : 'agree-open')
       host = await H.joinAsHost(m.meetingId)
-      for (const [name, dev] of [['Guest Asha', H.DESKTOP], ['Guest Ravi', H.DESKTOP], ['Guest Meera', H.DESKTOP], ['Guest Phone One', H.PHONE], ['Guest Phone Two', H.PHONE]]) guests.push(await H.joinAsGuest(m.roomUuid, name, dev))
+      for (const [name, dev] of [['Guest Asha', H.DESKTOP], ['Guest Ravi', H.DESKTOP]]) guests.push(await H.joinAsGuest(m.roomUuid, name, dev))
+      guests.push(await pageGuest(m.roomUuid, 'Guest Meera', H.DESKTOP))   // through the join page, like a person
+      for (const [name, dev] of [['Guest Phone One', H.PHONE], ['Guest Phone Two', H.PHONE]]) guests.push(await H.joinAsGuest(m.roomUuid, name, dev))
     })
     test.afterAll(async () => {
       for (const p of all()) await p.browser.close().catch(() => {})
@@ -69,6 +92,15 @@ for (const locked of [false, true]) {
       const g = guests[3]
       await g.ctx.setOffline(true); await g.page.waitForTimeout(15000); await g.ctx.setOffline(false)
       await agree(all(), 'long drop on a phone', 60000)
+    })
+
+    test('a guest opens the guest link again in the same browser: join page, never the lock screen, and back in' + (locked ? ' (while locked)' : ''), async () => {
+      test.info().annotations.push({ type: 'guard-allow', description: DROPS })
+      const g = guests[2]
+      const dev = await g.page.evaluate(() => { try { return localStorage.getItem('tenet_device_id') } catch (e) { return null } })
+      expect(dev, 'the join page left this browser a device id (needed to come back while locked)').toMatch(/^[A-Za-z0-9-]{8,64}$/)
+      await joinViaPage(g, m.roomUuid, 'Guest Meera')
+      await agree(all(), 'guest came back by the link', 40000)
     })
 
     test(locked ? 'a newcomer is kept out while locked (lock screen), then gets in when unlocked' : 'a late guest joins: every page lists all seven', async () => {
