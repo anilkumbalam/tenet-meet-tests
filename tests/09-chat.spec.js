@@ -206,9 +206,7 @@ test.describe('09 - Chat (host + 1 guest)', () => {
   })
 
   test('host receives guest message via DataChannel', async () => {
-    // LiveKit DataChannel chat — requires WebRTC peer connection.
-    // On tenet-crm-test STUN/DNS fails so DataChannel may not establish.
-    // This test checks cross-browser delivery; log clearly if it doesn't arrive.
+    // Chat travels over the call's data channel; it must arrive (mandatory since 9 Nov).
     await hostPage.waitForTimeout(3000) // allow DataChannel time
     const hostMsgs = await hostPage.locator('#chat-messages .chat-text').allTextContents()
     console.log('[Host] all chat texts:', hostMsgs)

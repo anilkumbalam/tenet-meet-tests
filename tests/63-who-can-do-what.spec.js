@@ -88,8 +88,11 @@ test.describe.serial('63 - Who can do what', () => {
 
   test('reading a meeting: the waiting list, people and files', async () => {
     for (const who of ['out', 'member']) for (const p of ['/waiting', '/participants', '/files']) judge(who, 'GET', '/api/meetings/:id' + p, await call(C[who], 'GET', '/api/meetings/' + T.id + p), 'refuse')
-    for (const p of ['/waiting', '/participants', '/files', '/status']) judge('invited', 'GET', '/api/meetings/:id' + p, await call(C.invited, 'GET', '/api/meetings/' + T.id + p), 'note')
-    judge('out', 'GET', '/api/meetings/:id/status', await call(C.out, 'GET', '/api/meetings/' + T.id + '/status'), 'note')
+    for (const p of ['/waiting', '/participants', '/files']) judge('invited', 'GET', '/api/meetings/:id' + p, await call(C.invited, 'GET', '/api/meetings/' + T.id + p), 'refuse')   // 9 Nov (Anil): host tools, refused from outside the meeting
+    for (const who of ['out', 'invited']) {                     // status is open (guests' pages need it) but tells only whether the meeting is on
+      const r = await C[who].get('/api/meetings/' + T.id + '/status'); judge(who, 'GET', '/api/meetings/:id/status', r.status(), 'note')
+      expect.soft(Object.keys(await r.json().catch(() => ({}))), who + ': status tells only the state').toEqual(['status'])
+    }
     for (const p of ['/waiting', '/participants']) { const s = await call(C.host, 'GET', '/api/meetings/' + T.id + p); judge('host', 'GET', '/api/meetings/:id' + p, s, 'note'); expect.soft(s, 'host can read ' + p).toBe(200) }
     expect.soft(problems, 'reading').toEqual([])
   })
