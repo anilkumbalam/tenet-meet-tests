@@ -54,8 +54,7 @@ async function launchBrowser () {
 async function finishJoin (page, who) {
   const avBtn = page.locator('#av-join-btn')
   await avBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => avBtn.click()).catch(() => {})
-  try { await expect(page.locator('#loading-screen')).toHaveClass(/hidden/, { timeout: 20000 }) }
-  catch { console.warn(`[${who}] loading screen timeout`) }
+  await expect(page.locator('#loading-screen'), 'joined: the loading screen goes').toHaveClass(/hidden/, { timeout: 20000 })   // 9 Nov: mandatory (was a warning)
 }
 
 async function joinAsHost (meetingId) {
@@ -93,7 +92,7 @@ async function openRowMenu (row) {
   const more = row.locator('.tp-more')
   if (await more.count() > 0 && await more.first().isVisible().catch(() => false)) {
     await more.first().click()
-    await row.locator('.tp-menu.open').waitFor({ state: 'visible', timeout: 3000 }).catch(() => {})
+    await row.locator('.tp-menu.open').waitFor({ state: 'visible', timeout: 5000 })   // 9 Nov: once ⋯ is clicked the menu must open
   }
 }
 

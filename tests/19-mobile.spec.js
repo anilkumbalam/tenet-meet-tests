@@ -87,7 +87,7 @@ test.describe.serial('19 - Phones', () => {
 
   for (const [label, device, engine] of PHONES) {
     test(`${label}: toolbar fits, mic works, chat opens full page and works both ways`, async () => {
-      test.skip(await H.engineAvailable(engine) === false, engine + ' not installed')
+      expect(await H.engineAvailable(engine), engine + ' not installed').toBe(true)   // 9 Nov: mandatory, a missing browser fails instead of skipping
       const ph = await H.joinAsGuest(roomUuid, 'Guest Phone ' + (++n), device, engine)
       try {
         const p = ph.page

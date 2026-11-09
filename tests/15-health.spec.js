@@ -122,7 +122,7 @@ test.describe.serial('15 - Health and safety net', () => {
   })
 
   test('Firefox guest: joins, sees everyone, sees a screen share', async () => {
-    test.skip(await H.engineAvailable('firefox') === false, 'Firefox not installed: npx playwright install --with-deps firefox')
+    expect(await H.engineAvailable('firefox'), 'Firefox not installed: npx playwright install --with-deps firefox').toBe(true)   // 9 Nov: mandatory, a missing browser fails instead of skipping
     const ff = await H.joinAsGuest(roomUuid, 'Guest Firefox', H.DESKTOP, 'firefox')
     try {
       await expect.poll(() => H.roomState(ff.page), { timeout: 30000 }).toBe('connected')
@@ -141,7 +141,7 @@ test.describe.serial('15 - Health and safety net', () => {
   })
 
   test('iPhone guest (Safari engine): joins, share fills the screen, page fits the phone', async () => {
-    test.skip(await H.engineAvailable('webkit') === false, 'WebKit not installed: npx playwright install --with-deps webkit')
+    expect(await H.engineAvailable('webkit'), 'WebKit not installed: npx playwright install --with-deps webkit').toBe(true)   // 9 Nov: mandatory, a missing browser fails instead of skipping
     const ip = await H.joinAsGuest(roomUuid, 'Guest iPhone', H.IPHONE, 'webkit')
     try {
       await expect.poll(() => H.roomState(ip.page), { timeout: 30000 }).toBe('connected')

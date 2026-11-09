@@ -12,8 +12,7 @@ test.describe('Authentication', () => {
 
   test('Unauthenticated visit to / redirects to /start', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' })
-    await page.waitForURL(/\/(start)/, { timeout: 15000 }).catch(() => {})
-    const url = page.url()
-    expect(url.includes('/start') || url.includes('accounts.zoho.com')).toBeTruthy()
+    await page.waitForURL(/\/start/, { timeout: 15000 })   // 9 Nov: mandatory
+    expect(page.url()).toContain('/start')
   })
 })

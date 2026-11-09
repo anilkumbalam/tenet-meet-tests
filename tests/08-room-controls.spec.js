@@ -71,11 +71,7 @@ async function joinAsHost (meetingId, hostEmail, hostDisplay) {
   const avBtn = page.locator('#av-join-btn')
   await avBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => avBtn.click()).catch(() => {})
 
-  try {
-    await expect(page.locator('#loading-screen')).toHaveClass(/hidden/, { timeout: 20000 })
-  } catch {
-    console.warn('[Host] loading screen timeout')
-  }
+  await expect(page.locator('#loading-screen'), 'joined: the loading screen goes').toHaveClass(/hidden/, { timeout: 20000 })   // 9 Nov: mandatory (was a warning)
 
   return { browser, ctx, page }
 }
@@ -94,18 +90,14 @@ async function joinAsGuest (roomUuid, guestName) {
     throw new Error(`[${guestName}] guest-join API ${joinRes.status()}: ${await joinRes.text()}`)
   }
   const { url } = await joinRes.json()
-  console.log(`[${guestName}] meeting URL: ${url}`)
+  console.log(`[${guestName}] meeting URL: ${url.replace(/(token|pk)=[^&]+/g, '$1=…')}`)   // 9 Nov: no passes in the log
 
   await page.goto(`${BASE_URL}${url}`, { waitUntil: 'domcontentloaded' })
 
   const avBtn = page.locator('#av-join-btn')
   await avBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => avBtn.click()).catch(() => {})
 
-  try {
-    await expect(page.locator('#loading-screen')).toHaveClass(/hidden/, { timeout: 20000 })
-  } catch {
-    console.warn(`[${guestName}] loading screen timeout — URL: ${page.url()}`)
-  }
+  await expect(page.locator('#loading-screen'), 'joined: the loading screen goes').toHaveClass(/hidden/, { timeout: 20000 })   // 9 Nov: mandatory (was a warning)
 
   return { browser, ctx, page }
 }
@@ -119,7 +111,7 @@ async function openRowMenu (row) {
   const more = row.locator('.tp-more')
   if (await more.count() > 0 && await more.first().isVisible().catch(() => false)) {
     await more.first().click()
-    await row.locator('.tp-menu.open').waitFor({ state: 'visible', timeout: 3000 }).catch(() => {})
+    await row.locator('.tp-menu.open').waitFor({ state: 'visible', timeout: 5000 })   // 9 Nov: once ⋯ is clicked the menu must open
   }
 }
 
@@ -248,8 +240,9 @@ test.describe('08 - Room controls (host + 3 guests)', () => {
     await target.locator('.p-mod-btn').filter({ hasText: 'Mute' }).click()
     await hostPage.waitForTimeout(1500)
     const unmuteBtn = target.locator('.p-mod-btn').filter({ hasText: 'Unmute' })
+    await expect(unmuteBtn.first(), 'the guest shows as muted').toBeAttached({ timeout: 15000 })   // 9 Nov: mandatory
     await openRowMenu(target)
-    await unmuteBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => unmuteBtn.click()).catch(() => {})
+    await unmuteBtn.first().click({ timeout: 15000 })
   })
 
   test('host can promote a guest to co-host', async () => {
@@ -299,12 +292,10 @@ test.describe('08 - Room controls (host + 3 guests)', () => {
     await expect(lockBtn).toBeVisible({ timeout: 5000 })
     await lockBtn.click()
     await hostPage.waitForTimeout(1500)
-    const lockedVal = await lockBtn.getAttribute('data-locked').catch(() => null)
-    if (lockedVal !== null) expect(['true', '1', 'locked']).toContain(lockedVal)
+    await expect(lockBtn, 'the button says Locked').toContainText('Locked', { timeout: 10000 })   // 9 Nov: mandatory (as in test 46)
     await lockBtn.click()
     await hostPage.waitForTimeout(1500)
-    const unlockedVal = await lockBtn.getAttribute('data-locked').catch(() => null)
-    if (unlockedVal !== null) expect(['false', '0', '']).toContain(unlockedVal)
+    await expect(lockBtn, 'the button says Lock again').not.toContainText('Locked', { timeout: 10000 })
   })
 
   test('share screen button is visible for host', async () => {
@@ -314,8 +305,8 @@ test.describe('08 - Room controls (host + 3 guests)', () => {
   test('Mute All button is not visible to guests', async () => {
     expect(guests).toHaveLength(3)
     for (const { page, name } of guests) {
-      const visible = await page.locator('#btn-mute-all').isVisible().catch(() => false)
-      expect(visible, `${name} should not see Mute All`).toBe(false)
+      expect(await page.evaluate(() => document.readyState), `${name}'s page is alive`).toBe('complete')   // 9 Nov: a crashed page no longer counts as 'not visible'
+      await expect(page.locator('#btn-mute-all'), `${name} should not see Mute All`).toBeHidden()
     }
   })
 })

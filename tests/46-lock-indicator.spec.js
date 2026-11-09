@@ -76,11 +76,10 @@ test.describe.serial('46 - Locked indicator', () => {
       await expect.poll(() => p.evaluate(() => /waiting/i.test((document.getElementById('topbar') || {}).textContent || '')), { timeout: 20000 }).toBe(true)
       const open = await p.locator('#right-panel').getAttribute('class').then(c => !(c || '').includes('hidden')).catch(() => false)
       if (open) { await p.locator('#btn-panel').click(); await p.waitForTimeout(500) }          // unread chat shows only with the panel closed
-      try {                                                                                     // best effort: an unread message from the guest
-        await H.openPanel(guest.page)
-        const box = guest.page.locator('#right-panel textarea, #right-panel input[type="text"]').first()
-        await box.fill('hello from the guest', { timeout: 5000 }); await box.press('Enter')
-      } catch (e) { console.log('[46] could not send the chat message:', String(e.message).split('\n')[0]) }
+      await H.openPanel(guest.page); await H.showChat(guest.page)                              // 9 Nov: mandatory (was best effort; the box is on the Chat tab)
+      const box = guest.page.locator('#right-panel textarea:visible, #right-panel input[type="text"]:visible').first()
+      await box.fill('hello from the guest', { timeout: 10000 }); await box.press('Enter')
+      await expect.poll(async () => (await p.locator('#chat-messages .chat-text').allTextContents()).some(t => t.includes('hello from the guest')), { message: 'the host got the message', timeout: 15000 }).toBe(true)
       await p.waitForTimeout(2000)
       const before = p.viewportSize(), out = []
       try {

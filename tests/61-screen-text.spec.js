@@ -99,7 +99,7 @@ test.describe.serial('61 - Text check on every screen', () => {
       await page.evaluate(() => window.openSchedule())
       await scan(page, 'admin, schedule form, ' + dev)
       const more = page.getByText(/More options/i).first()
-      if (await more.isVisible().catch(() => false)) { await more.click(); await scan(page, 'admin, schedule form with more options, ' + dev) }
+      await expect(more, 'More options is offered').toBeVisible(); await more.click(); await scan(page, 'admin, schedule form with more options, ' + dev)   // 9 Nov: mandatory
       await ctx.close()
     }
   })

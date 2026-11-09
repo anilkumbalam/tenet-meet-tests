@@ -54,7 +54,11 @@ const test = base.test.extend({
   page: async ({ page }, use) => { watchPage(page); await use(page) },
   _guard: [async ({ browser }, use, info) => {
     watchBrowser(browser); found = []
-    await use()
+    const ow = console.warn, ol = console.log, soft = /could not|known limitation|loading screen timeout|skipp|not installed|cannot start/i   // 9 Nov: no quiet soft spots
+    console.warn = (...a) => { note('test warning', info.title, a.map(String).join(' ')); ow(...a) }
+    console.log = (...a) => { const t = a.map(String).join(' '); if (soft.test(t)) note('test warning', info.title, t); ol(...a) }
+    try { await use() } finally { console.warn = ow; console.log = ol }
+    if (info.status === 'skipped') note('skipped', info.title, 'the test was skipped')
     const allow = info.annotations.filter(a => a.type === 'guard-allow').map(a => new RegExp(a.description, 'i'))
     const fileName = info.file.split('/').pop()
     const meant = EXPECTED.filter(x => x.file.test(fileName) && x.test.test(info.title)).map(x => x.msg)

@@ -53,8 +53,7 @@ async function joinAsHost (meetingId) {
   await page.goto(`${BASE_URL}${url}`, { waitUntil: 'domcontentloaded' })
   const avBtn = page.locator('#av-join-btn')
   await avBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => avBtn.click()).catch(() => {})
-  try { await expect(page.locator('#loading-screen')).toHaveClass(/hidden/, { timeout: 20000 }) }
-  catch { console.warn('[Host] loading screen timeout') }
+  await expect(page.locator('#loading-screen'), 'joined: the loading screen goes').toHaveClass(/hidden/, { timeout: 20000 })   // 9 Nov: mandatory (was a warning)
   return { browser, ctx, page }
 }
 
@@ -71,8 +70,7 @@ async function joinAsGuest (roomUuid, guestName) {
   await page.goto(`${BASE_URL}${url}`, { waitUntil: 'domcontentloaded' })
   const avBtn = page.locator('#av-join-btn')
   await avBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => avBtn.click()).catch(() => {})
-  try { await expect(page.locator('#loading-screen')).toHaveClass(/hidden/, { timeout: 20000 }) }
-  catch { console.warn(`[${guestName}] loading screen timeout`) }
+  await expect(page.locator('#loading-screen'), 'joined: the loading screen goes').toHaveClass(/hidden/, { timeout: 20000 })   // 9 Nov: mandatory (was a warning)
   return { browser, ctx, page }
 }
 
@@ -87,7 +85,7 @@ async function openRowMenu (row) {
   const more = row.locator('.tp-more')
   if (await more.count() > 0 && await more.first().isVisible().catch(() => false)) {
     await more.first().click()
-    await row.locator('.tp-menu.open').waitFor({ state: 'visible', timeout: 3000 }).catch(() => {})
+    await row.locator('.tp-menu.open').waitFor({ state: 'visible', timeout: 5000 })   // 9 Nov: once ⋯ is clicked the menu must open
   }
 }
 
@@ -246,7 +244,7 @@ test.describe('10 - Co-host promotion and controls', () => {
   })
 
   test('regular guest does NOT see Mute All button', async () => {
-    const visible = await guestPage.locator('#btn-mute-all').isVisible().catch(() => false)
-    expect(visible, 'Regular guest should not see Mute All').toBe(false)
+    expect(await guestPage.evaluate(() => document.readyState), 'the guest page is alive').toBe('complete')   // 9 Nov
+    await expect(guestPage.locator('#btn-mute-all'), 'Regular guest should not see Mute All').toBeHidden()
   })
 })

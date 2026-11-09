@@ -66,11 +66,7 @@ async function joinAsHost (meetingId, hostEmail, hostDisplay) {
   const avBtn = page.locator('#av-join-btn')
   await avBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => avBtn.click()).catch(() => {})
 
-  try {
-    await expect(page.locator('#loading-screen')).toHaveClass(/hidden/, { timeout: 20000 })
-  } catch {
-    console.warn('[Host] loading screen timeout')
-  }
+  await expect(page.locator('#loading-screen'), 'joined: the loading screen goes').toHaveClass(/hidden/, { timeout: 20000 })   // 9 Nov: mandatory (was a warning)
 
   return { browser, ctx, page }
 }
@@ -94,11 +90,7 @@ async function joinAsGuest (roomUuid, guestName) {
   const avBtn = page.locator('#av-join-btn')
   await avBtn.waitFor({ state: 'visible', timeout: 15000 }).then(() => avBtn.click()).catch(() => {})
 
-  try {
-    await expect(page.locator('#loading-screen')).toHaveClass(/hidden/, { timeout: 20000 })
-  } catch {
-    console.warn(`[${guestName}] loading screen timeout`)
-  }
+  await expect(page.locator('#loading-screen'), 'joined: the loading screen goes').toHaveClass(/hidden/, { timeout: 20000 })   // 9 Nov: mandatory (was a warning)
 
   return { browser, ctx, page }
 }
@@ -220,31 +212,15 @@ test.describe('09 - Chat (host + 1 guest)', () => {
     await hostPage.waitForTimeout(3000) // allow DataChannel time
     const hostMsgs = await hostPage.locator('#chat-messages .chat-text').allTextContents()
     console.log('[Host] all chat texts:', hostMsgs)
-    const received = hostMsgs.some(t => t.includes('Hello from guest!'))
-    if (!received) {
-      console.warn(
-        '[KNOWN LIMITATION] Host did not receive guest message — ' +
-        'WebRTC DataChannel likely not established due to STUN/DNS failure on test server. ' +
-        'Chat delivery works in production where STUN resolves.'
-      )
-    } else {
-      console.log('[Host] ✓ received guest message via DataChannel')
-    }
-    // Not a hard failure — we confirmed the UI works; cross-browser needs real STUN
+    await expect.poll(async () => (await hostPage.locator('#chat-messages .chat-text').allTextContents()).some(t => t.includes('Hello from guest!')), { message: 'the host receives the guest message', timeout: 15000 }).toBe(true)   // 9 Nov: mandatory
+    console.log('[Host] ✓ received guest message via DataChannel')
   })
 
   test('guest receives host message via DataChannel', async () => {
     await guestPage.waitForTimeout(3000)
     const guestMsgs = await guestPage.locator('#chat-messages .chat-text').allTextContents()
     console.log('[Guest] all chat texts:', guestMsgs)
-    const received = guestMsgs.some(t => t.includes('Hello from host!'))
-    if (!received) {
-      console.warn(
-        '[KNOWN LIMITATION] Guest did not receive host message — ' +
-        'WebRTC DataChannel likely not established due to STUN/DNS failure on test server.'
-      )
-    } else {
-      console.log('[Guest] ✓ received host message via DataChannel')
-    }
+    await expect.poll(async () => (await guestPage.locator('#chat-messages .chat-text').allTextContents()).some(t => t.includes('Hello from host!')), { message: 'the guest receives the host message', timeout: 15000 }).toBe(true)   // 9 Nov: mandatory
+    console.log('[Guest] ✓ received host message via DataChannel')
   })
 })
