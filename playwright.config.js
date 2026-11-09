@@ -5,7 +5,7 @@ module.exports = defineConfig({
   globalTeardown: require.resolve('./global-teardown.js'),   // deletes the meetings the tests created
   testDir: './tests',
   timeout: 120000,
-  globalTimeout: 1800000,
+  globalTimeout: 3600000,   // 9 Nov: 60 min, the suite now takes over 30
   retries: 1,
   workers: 1,
   use: {

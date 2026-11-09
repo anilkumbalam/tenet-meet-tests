@@ -32,7 +32,7 @@ async function watchLost (p) {                       // records any Connection l
   await p.exposeBinding('__t43Seen', (_s, what) => { seen.push(what) })
   const arm = () => {
     const check = () => { if (document.getElementById('rj-screen')) window.__t43Seen('rj-screen') }
-    new MutationObserver(check).observe(document.documentElement, { childList: true, subtree: true }); check()
+    new MutationObserver(check).observe(document, { childList: true, subtree: true }); check()
   }
   await p.addInitScript(arm); await p.evaluate(arm)
   return seen

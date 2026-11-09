@@ -13,13 +13,23 @@ const fs = require('fs')
 
 const MODE = process.env.GUARD || 'report'
 const REPORT = process.env.GUARD_REPORT || '/root/guard-report.jsonl'
-const IGNORE = [/ResizeObserver loop/i, /^Failed to load resource/i, /favicon\.ico/i]
+// 9 Nov: the media library prints 'Unknown DataChannel error on lossy/reliable' when the server closes a call
+// (meeting ended, person removed); it is not a fault and people never see it.
+const IGNORE = [/ResizeObserver loop/i, /^Failed to load resource/i, /favicon\.ico/i, /^Unknown DataChannel error on (lossy|reliable)\b/i,
+  /^Tried to add a track for a participant, that's not present/i]   // 9 Nov: library timing race on let in again; test 62 shows sound still flows
+// 9 Nov: messages that particular tests cause on purpose (they cut the network, or make the server refuse)
+const EXPECTED = [
+  { file: /^14-connection-roles\./, test: /connection lost/i, msg: /^WebSocket connection to|^Failed to fetch/ },
+  { file: /^19-mobile\./, test: /network drop/i, msg: /^WebSocket connection to|^Failed to fetch/ },
+  { file: /^55-dashboard-v4\./, test: /refused cancel/i, msg: /\/cancel$/ },   // the test answers 500 itself
+]
+const hide = s => String(s || '').replace(/(access_token|token)=[^&\s'"]+/gi, '$1=…')   // never keep sign-in or room passes in the report
 let found = []
 
-function note (kind, where, msg) { found.push({ kind, where: String(where || '').slice(0, 200), msg: String(msg || '').slice(0, 400) }) }
+function note (kind, where, msg) { found.push({ kind, where: hide(where).slice(0, 200), msg: hide(msg).slice(0, 900) }) }
 function watchPage (p) {
   if (!p || p.__guard) return; p.__guard = true
-  p.on('pageerror', e => note('page error', p.url(), (e && e.message) || e))
+  p.on('pageerror', e => note('page error', p.url(), (e && (e.stack || e.message)) || e))   // 9 Nov: keep where it happened
   p.on('console', m => { if (m.type() === 'error') note('console error', p.url(), m.text()) })
   p.on('response', r => { if (r.status() >= 500) note('server ' + r.status(), r.url(), r.request().method() + ' ' + r.url()) })
 }
@@ -46,7 +56,9 @@ const test = base.test.extend({
     watchBrowser(browser); found = []
     await use()
     const allow = info.annotations.filter(a => a.type === 'guard-allow').map(a => new RegExp(a.description, 'i'))
-    const bad = found.filter(f => !IGNORE.some(r => r.test(f.msg)) && !allow.some(r => r.test(f.msg) || r.test(f.where)))
+    const fileName = info.file.split('/').pop()
+    const meant = EXPECTED.filter(x => x.file.test(fileName) && x.test.test(info.title)).map(x => x.msg)
+    const bad = found.filter(f => !IGNORE.some(r => r.test(f.msg)) && !meant.some(r => r.test(f.msg)) && !allow.some(r => r.test(f.msg) || r.test(f.where)))
     if (!bad.length) return
     const line = { at: new Date().toISOString(), file: info.file.split('/').pop(), test: info.title, problems: bad.slice(0, 20) }
     try { fs.appendFileSync(REPORT, JSON.stringify(line) + '\n') } catch (e) {}
