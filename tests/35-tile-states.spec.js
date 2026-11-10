@@ -36,7 +36,7 @@ test.describe.serial('35 - v4 tile states', () => {
     await guest.page.locator('#btn-cam').click()
     await expect(t).toHaveClass(/ts-novideo/, { timeout: 15000 })
     await expect(t.locator('.tile-avatar')).toBeVisible()
-    await expect(t.locator('.tile-avatar')).toHaveText(/^G/)
+    await expect(t.locator('.tile-avatar')).toHaveCSS('mask-image', /person-figure|data:image\/svg/)
     await guest.page.locator('#btn-mic').click()
     await expect.poll(() => t.getAttribute('data-mic'), { timeout: 15000 }).toBe('off')
   })

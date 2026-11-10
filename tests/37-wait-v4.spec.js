@@ -35,7 +35,7 @@ test.describe.serial('37 - v4 waiting room', () => {
     await g.page.locator('#wv-cam').click()
     await expect(g.page.locator('#wv-cam')).toHaveAttribute('aria-pressed', 'false')
     await expect(g.page.locator('#stage')).not.toHaveClass(/\bcam\b/)
-    await expect(g.page.locator('#wv-initial')).toHaveText('G')
+    await expect(g.page.locator('#wv-initial')).toHaveCSS('background-image', /person-figure\.svg/)
     const v3 = await m.api.request.get(g.page.url() + '?ui=3')
     expect(await v3.text(), 'v3 people keep the old waiting page').toContain('/js/wait.js')
     expect((await m.api.request.get(g.page.url() + '?ui=4')).headers()['x-meet-ui']).toBe('4')
