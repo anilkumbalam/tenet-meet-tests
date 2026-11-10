@@ -1,10 +1,12 @@
 const { test, expect } = require('./guard')
-const { AUTH_STATE_PATH, waitForDashboard, clickTab, apiCreateMeeting, apiDeleteMeeting, apiEndMeeting } = require('./helpers')
+const { AUTH_STATE_PATH, waitForDashboard, clickTab, apiCreateMeeting, apiDeleteMeeting, apiEndMeeting, freshAuthState } = require('./helpers')
 const { BASE_URL } = require('./env')
 
 test.use({ storageState: AUTH_STATE_PATH })
 
 test.describe('Meeting list', () => {
+  test.beforeAll(async ({ browser }) => { await freshAuthState(browser) })   // 10 Nov: the saved sign-in is signed out after 1 hour without use
+
 
   test('Scheduled meeting appears in Scheduled tab', async ({ page, request }) => {
     const title    = `tl-${Date.now().toString(36)}`

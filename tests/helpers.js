@@ -42,6 +42,31 @@ async function loginWithZoho(page, credentials = CREDENTIALS.primary) {
   await page.waitForTimeout(2000)
 }
 
+// The saved sign-in (test 01) is signed out after 1 hour without use. Sign in again when it is older than 45
+// minutes, missing or unreadable, so a spec works run on its own and late in a long full run.
+const AUTH_FRESH_MS = 45 * 60 * 1000
+function authStateAgeMs() {
+  try {
+    const d = JSON.parse(fs.readFileSync(AUTH_STATE_PATH, 'utf8'))
+    const c = (d.cookies || []).filter(x => x.name === 'meet_token')[0]
+    const p = JSON.parse(Buffer.from(c.value.split('.')[1], 'base64url').toString())
+    const act = p.act || (p.iat ? p.iat * 1000 : 0)
+    return act ? Date.now() - act : Infinity
+  } catch (e) { return Infinity }
+}
+async function freshAuthState(browser) {
+  const age = authStateAgeMs()
+  if (age < AUTH_FRESH_MS) return false
+  ensureAuthDir()
+  const ctx = await browser.newContext({ ignoreHTTPSErrors: true })
+  try {
+    await loginWithZoho(await ctx.newPage())
+    await ctx.storageState({ path: AUTH_STATE_PATH })
+  } finally { await ctx.close() }
+  if (authStateAgeMs() >= AUTH_FRESH_MS) throw new Error('signing in again did not refresh ' + AUTH_STATE_PATH)
+  return true
+}
+
 function ensureAuthDir() {
   const dir = path.dirname(AUTH_STATE_PATH)
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
@@ -96,7 +121,7 @@ async function closeModal(page) {
 }
 
 module.exports = {
-  CREDENTIALS, AUTH_STATE_PATH, JWT_SECRET, makeJwt, ensureAuthDir, loginWithZoho,
+  CREDENTIALS, AUTH_STATE_PATH, JWT_SECRET, makeJwt, ensureAuthDir, loginWithZoho, freshAuthState, authStateAgeMs,
   apiGetMeetings, apiCreateMeeting, apiDeleteMeeting, apiEndMeeting,
   waitForDashboard, clickTab, openScheduleModal, openStartNowModal, closeModal,
 }

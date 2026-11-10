@@ -25,6 +25,12 @@ test.describe.serial('38 - v4 join page', () => {
     await expect(p.locator('#av-preview-wrap .av-controls #av-btn-mic')).toHaveCount(1)
     await expect(p.locator('#pj4-who')).toContainText('Joining as')
     await expect(p.locator('.pj4-brand')).toHaveCount(1)
+    // 10 Nov: same design as the guest page: ⚙ on the preview, connection tag, lists closed until ⚙, person figure
+    await expect(p.locator('#av-preview-wrap .av-controls #pj4-dev')).toHaveCount(1)
+    await expect(p.locator('#av-preview-wrap #pj4-net')).toHaveCount(1)
+    await expect(p.locator('#av-preview-avatar .pj4-figure')).toHaveCount(1)
+    expect(await p.evaluate(() => getComputedStyle(document.querySelector('#av-check-box .av-selects')).display), 'device lists closed until ⚙').toBe('none')
+    expect(await p.evaluate(() => typeof window.TenetDeviceWords === 'object'), 'shared words loaded').toBe(true)
   })
 
   test('guest: one page with name, preview and Join; joins at once with the camera off', async () => {
@@ -40,6 +46,12 @@ test.describe.serial('38 - v4 join page', () => {
     await expect(page.locator('#wv-net')).toHaveClass(/great|good|slow/, { timeout: 15000 })
     await page.fill('#n', 'Guest Jv')
     await expect(page.locator('#wv-name')).toHaveText('Joining as Guest Jv')
+    // 10 Nov: Mic level row under the preview, person figure when the camera is off, ⚙ opens the lists
+    await expect(page.locator('.pj-level #jv-level-fill')).toHaveCount(1)
+    expect(await page.evaluate(() => getComputedStyle(document.getElementById('wv-initial')).backgroundImage), 'person figure').toContain('person-figure')
+    await page.locator('#wv-dev').click()
+    await expect(page.locator('#wv-sel-mic'), '⚙ opens the lists').toBeVisible()
+    await page.locator('#wv-dev').click()
     await page.locator('#wv-cam').click()
     await expect(page.locator('#wv-cam')).toHaveAttribute('aria-pressed', 'false')
     await page.locator('#btn').click()

@@ -42,7 +42,7 @@ test.describe.serial('40 - No camera', () => {
     await p.goto(`${B}/join/${m.roomUuid}`)
     await expect(p.locator('#wv-cam'), 'join page: camera button off').toHaveAttribute('aria-pressed', 'false', { timeout: 15000 })
     await expect(p.locator('#wv-cam')).toHaveClass(/\boff\b/)
-    await expect(p.locator('#wv-note')).toContainText('camera could not be started')
+    await expect(p.locator('#wv-note'), 'shared words: no camera found').toContainText('No camera found. You can still join with your microphone.')   // 10 Nov: device-words.js
     await p.fill('#n', 'Guest NoCam')
     await p.locator('#btn').click()
     await expect(p).toHaveURL(/\/meeting\//, { timeout: 15000 })

@@ -1,9 +1,11 @@
 const { test, expect } = require('./guard')
-const { apiCreateMeeting, apiDeleteMeeting, AUTH_STATE_PATH } = require('./helpers')
+const { apiCreateMeeting, apiDeleteMeeting, AUTH_STATE_PATH, freshAuthState } = require('./helpers')
 const { BASE_URL } = require('./env')
 
 // 06 - Guest join (rewritten 9 Nov: exact expectations; the old checks passed for any page whose address had /room/ in it)
 test.describe('Guest join', () => {
+  test.beforeAll(async ({ browser }) => { await freshAuthState(browser) })   // 10 Nov: the saved sign-in is signed out after 1 hour without use
+
   test('a valid guest link shows the join page: name box and Join button', async ({ playwright, browser }) => {
     const authCtx = await playwright.request.newContext({ baseURL: BASE_URL, ignoreHTTPSErrors: true, storageState: AUTH_STATE_PATH })
     const meeting = await apiCreateMeeting(authCtx, { title: 'Guest Join Test' })
