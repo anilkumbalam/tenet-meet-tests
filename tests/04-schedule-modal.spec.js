@@ -31,7 +31,7 @@ test.describe('Schedule modal', () => {
     await expect(page.locator('#mTitle')).toBeVisible()
   })
 
-  test('Scheduling a meeting shows it in the Scheduled tab', async ({ page }) => {
+  test('Scheduling a meeting shows it in the Upcoming tab', async ({ page }) => {
     await page.goto('/')
     await waitForDashboard(page)
     await openScheduleModal(page)
@@ -42,7 +42,7 @@ test.describe('Schedule modal', () => {
     await page.fill('#mTimeOnly', '10:00')
     await page.locator('#schedBtn, button:has-text("Create Meeting")').click()
     await page.waitForTimeout(1500)
-    await clickTab(page, 'Scheduled')
+    await clickTab(page, 'Upcoming')
     await expect(page.locator(`.meeting-card:has-text("${title}"), .card:has-text("${title}")`)).toBeVisible({ timeout: 10000 })
   })
 })

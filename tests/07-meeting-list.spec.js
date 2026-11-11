@@ -8,7 +8,7 @@ test.describe('Meeting list', () => {
   test.beforeAll(async ({ browser }) => { await freshAuthState(browser) })   // 10 Nov: the saved sign-in is signed out after 1 hour without use
 
 
-  test('Scheduled meeting appears in Scheduled tab', async ({ page, request }) => {
+  test('Scheduled meeting appears in Upcoming tab', async ({ page, request }) => {
     const title    = `tl-${Date.now().toString(36)}`
     const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0]
     const meeting  = await apiCreateMeeting(request, { title, scheduled_at: `${tomorrow}T10:00:00` })
@@ -16,7 +16,7 @@ test.describe('Meeting list', () => {
 
     await page.goto('/')
     await waitForDashboard(page)
-    await clickTab(page, 'Scheduled')
+    await clickTab(page, 'Upcoming')
     await expect(page.locator(`text=${title}`)).toBeVisible({ timeout: 10000 })
 
     await apiDeleteMeeting(request, meeting.id)
@@ -35,7 +35,7 @@ test.describe('Meeting list', () => {
     await expect(page.locator(`text=${title}`)).toBeVisible({ timeout: 10000 })
   })
 
-  test('Meeting cards show title and a Join button', async ({ page, request }) => {
+  test('Meeting cards show title and action buttons', async ({ page, request }) => {
     const title    = `tc-${Date.now().toString(36)}`
     const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0]
     const meeting  = await apiCreateMeeting(request, { title, scheduled_at: `${tomorrow}T11:00:00` })
@@ -43,11 +43,11 @@ test.describe('Meeting list', () => {
 
     await page.goto('/')
     await waitForDashboard(page)
-    await clickTab(page, 'Scheduled')
+    await clickTab(page, 'Upcoming')
 
     const card = page.locator(`.meeting-card:has-text("${title}"), [data-meeting-id="${meeting.id}"]`)
     await expect(card).toBeVisible({ timeout: 10000 })
-    await expect(card.locator('button:has-text("Join"), button:has-text("Start"), a:has-text("Join")')).toBeVisible()
+    await expect(card.locator('button:has-text("Copy link"), button:has-text("Join"), button:has-text("Start")')).toBeVisible()
 
     await apiDeleteMeeting(request, meeting.id)
   })

@@ -120,6 +120,7 @@ test.describe.serial('30 - Waiting room: setting, automatic co-host, v2 page', (
       await page.goto(`${B}/dashboard`, { waitUntil: 'domcontentloaded' })
       await page.waitForFunction(() => typeof window.openSchedule === 'function' && window.TenetWaitingSetting)
       await page.evaluate(() => openSchedule())
+      await page.locator('#mMore summary').click()
       await expect(page.locator('#mWaitingRoom')).toBeVisible()
       await expect(page.locator('#mWaitingRoom')).not.toBeChecked()
       await expect(page.locator('label:has(#mWaitingRoom)')).toContainText('Waiting room: people wait until the host lets them in')
