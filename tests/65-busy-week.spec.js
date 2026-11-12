@@ -44,7 +44,7 @@ async function dash (browser, who, device = H.DESKTOP) {
   const ctx = await browser.newContext({ ignoreHTTPSErrors: true, timezoneId: IST, ...device })
   await ctx.addCookies([{ name: 'meet_token', value: pass(P[who]), domain: new URL(BASE).hostname, path: '/', httpOnly: true, secure: BASE.startsWith('https'), sameSite: 'Lax' }])
   const page = await ctx.newPage()
-  await page.goto(BASE + '/dashboard?dash=4#today')
+  await page.goto(BASE + '/dashboard#today')
   await expect(page.locator('#acctBtn')).toBeVisible({ timeout: 15000 })
   return { ctx, page }
 }

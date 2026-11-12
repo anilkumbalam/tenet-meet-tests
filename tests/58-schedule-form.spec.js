@@ -18,7 +18,7 @@ async function dash (browser, opts) {
   await ctx.addCookies([{ name: 'meet_token', value: pass(), domain: new URL(BASE).hostname, path: '/', httpOnly: true, secure: BASE.startsWith('https'), sameSite: 'Lax' }])
   const page = await ctx.newPage()
   page.on('dialog', d => { throw new Error('browser dialog: ' + d.message()) })
-  await page.goto(`${BASE}/dashboard?dash=4`)
+  await page.goto(`${BASE}/dashboard`)
   await expect(page.locator('#acctBtn')).toBeVisible({ timeout: 15000 })
   return { ctx, page }
 }

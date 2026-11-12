@@ -55,7 +55,7 @@ async function ctxFor (browser, who, device = H.DESKTOP) {                 // wh
 }
 async function dashboard (browser, who, device) {
   const ctx = await ctxFor(browser, who, device), page = await ctx.newPage()
-  await page.goto(BASE + '/dashboard?dash=4#today')
+  await page.goto(BASE + '/dashboard#today')
   await page.waitForFunction(() => document.querySelector('.tab-btn') && !/…|Loading/.test((document.getElementById('heroName') || {}).textContent || ''), null, { timeout: 20000 })
   return { ctx, page }
 }
@@ -80,7 +80,7 @@ test.describe.serial('61 - Text check on every screen', () => {
     for (const [dev, d] of [['desktop', H.DESKTOP], ['phone', H.PHONE]]) {
       const ctx = await ctxFor(browser, 'out', d), page = await ctx.newPage()
       await page.goto(BASE + '/'); await scan(page, 'signed out, start page, ' + dev)
-      await page.goto(BASE + '/dashboard?dash=4'); await scan(page, 'signed out, dashboard, ' + dev)
+      await page.goto(BASE + '/dashboard'); await scan(page, 'signed out, dashboard, ' + dev)
       await page.goto(BASE + '/join/' + later.room_uuid); await expect(page.locator('#n')).toBeVisible({ timeout: 15000 })
       await scan(page, 'guest link, name form, ' + dev)
       await page.goto(BASE + '/join/00000000-0000-4000-8000-000000000000'); await scan(page, 'guest link that does not exist, ' + dev)

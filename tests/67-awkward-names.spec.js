@@ -41,7 +41,7 @@ test.describe.serial('67 - Awkward names and titles', () => {
     const ctx = await browser.newContext({ ignoreHTTPSErrors: true, timezoneId: IST, ...device })
     await ctx.addCookies([{ name: 'meet_token', value: pass(), domain: new URL(BASE).hostname, path: '/', httpOnly: true, secure: BASE.startsWith('https'), sameSite: 'Lax' }])
     const page = await ctx.newPage()
-    await page.goto(BASE + '/dashboard?dash=4#upcoming')
+    await page.goto(BASE + '/dashboard#upcoming')
     await expect(page.locator('#acctBtn')).toBeVisible({ timeout: 15000 })
     await page.evaluate(() => window.showTab('upcoming'))
     return { ctx, page }

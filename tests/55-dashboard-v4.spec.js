@@ -83,7 +83,7 @@ test.describe.serial('55 - Dashboard v4', () => {
 
   test('member: invited meeting shows the host and no ⋯ menu; no "All meetings"', async ({ browser }) => {
     const { ctx, page } = await dash(browser, MEMBER)
-    await page.goto(`${BASE}/dashboard?dash=4#upcoming`)
+    await page.goto(`${BASE}/dashboard#upcoming`)
     const row = page.locator('.row', { hasText: T.invited })
     await expect(row).toBeVisible({ timeout: 15000 })
     await expect(row).toContainText('Host: ' + HOST)
@@ -101,7 +101,7 @@ test.describe.serial('55 - Dashboard v4', () => {
 
   test('admin: Upcoming shows only own meetings; "All meetings" shows everyone’s', async ({ browser }) => {
     const { ctx, page } = await dash(browser, HOST)
-    await page.goto(`${BASE}/dashboard?dash=4#upcoming`)
+    await page.goto(`${BASE}/dashboard#upcoming`)
     await expect(page.locator('.row', { hasText: T.invited })).toBeVisible({ timeout: 15000 })
     await expect(page.locator('.row', { hasText: T.member })).toHaveCount(0)
     await page.locator('#acctBtn').click()
@@ -118,7 +118,7 @@ test.describe.serial('55 - Dashboard v4', () => {
 
   test('our own dialog; "Keep it" keeps the meeting; a refused cancel shows an error, not success', async ({ browser }) => {
     const { ctx, page } = await dash(browser, HOST)
-    await page.goto(`${BASE}/dashboard?dash=4#upcoming`)
+    await page.goto(`${BASE}/dashboard#upcoming`)
     const row = page.locator('.row', { hasText: T.cancel })
     await expect(row).toBeVisible({ timeout: 15000 })
     await row.locator('.more').click()
@@ -145,7 +145,7 @@ test.describe.serial('55 - Dashboard v4', () => {
   test('fits a phone: no sideways scrolling', async ({ browser }) => {
     const { ctx, page } = await dash(browser, HOST, { viewport: { width: 360, height: 740 }, isMobile: true, hasTouch: true })
     for (const tab of ['today', 'upcoming', 'ended']) {
-      await page.goto(`${BASE}/dashboard?dash=4&t=${tab}#${tab}`)
+      await page.goto(`${BASE}/dashboard?t=${tab}#${tab}`)
       await expect(page.locator('#tab-' + tab)).toHaveClass(/active/, { timeout: 15000 })
       await page.waitForTimeout(400)
       const m = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }))

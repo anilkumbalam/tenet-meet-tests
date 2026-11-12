@@ -16,12 +16,14 @@ const REPORT = process.env.GUARD_REPORT || '/root/guard-report.jsonl'
 // 9 Nov: the media library prints 'Unknown DataChannel error on lossy/reliable' when the server closes a call
 // (meeting ended, person removed); it is not a fault and people never see it.
 const IGNORE = [/ResizeObserver loop/i, /^Failed to load resource/i, /favicon\.ico/i, /^Unknown DataChannel error on (lossy|reliable)\b/i,
-  /^Tried to add a track for a participant, that's not present/i]   // 9 Nov: library timing race on let in again; test 62 shows sound still flows
+  /^Tried to add a track for a participant, that's not present/i,   // 9 Nov: library timing race on let in again; test 62 shows sound still flows
+  /The play\(\) request was interrupted/i]   // 10 Nov: a video torn down while it is still starting (leaving); a browser message, not ours
 // 9 Nov: messages that particular tests cause on purpose (they cut the network, or make the server refuse)
 const EXPECTED = [
   { file: /^14-connection-roles\./, test: /connection lost/i, msg: /^WebSocket connection to|^Failed to fetch/ },
   { file: /^19-mobile\./, test: /network drop/i, msg: /^WebSocket connection to|^Failed to fetch/ },
   { file: /^55-dashboard-v4\./, test: /refused cancel/i, msg: /\/cancel$/ },   // the test answers 500 itself
+  { file: /^(14-connection-roles|19-mobile|69-people-agree)\./, test: /drop|connection lost/i, msg: /^Internal error\b|ConnectionError/ },   // 10 Nov: one failed attempt while getting back in after a cut network
 ]
 const hide = s => String(s || '').replace(/(access_token|token)=[^&\s'"]+/gi, '$1=…')   // never keep sign-in or room passes in the report
 let found = []

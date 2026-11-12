@@ -34,7 +34,7 @@ test.describe.serial('66 - Dashboard hiccups', () => {
     ctx = await browser.newContext({ ignoreHTTPSErrors: true, timezoneId: IST })
     await ctx.addCookies([{ name: 'meet_token', value: pass(), domain: new URL(BASE).hostname, path: '/', httpOnly: true, secure: BASE.startsWith('https'), sameSite: 'Lax' }])
     page = await ctx.newPage()
-    await page.goto(BASE + '/dashboard?dash=4#upcoming')
+    await page.goto(BASE + '/dashboard#upcoming')
     await expect.poll(() => titles().then(t => t.length), { timeout: 15000 }).toBe(2)
   })
   test.afterAll(async () => {

@@ -40,7 +40,7 @@ test.describe.serial('59 - Guests waiting for the host', () => {
     await ctx.addCookies([{ name: 'meet_token', value: pass(), domain: new URL(BASE).hostname, path: '/', httpOnly: true, secure: BASE.startsWith('https'), sameSite: 'Lax' }])
     const page = await ctx.newPage()
     await wait('Wait One', 't59-a'); await wait('Wait Two', 't59-b')
-    await page.goto(`${BASE}/dashboard?dash=4#upcoming`)
+    await page.goto(`${BASE}/dashboard#upcoming`)
     await expect(page.locator('.row', { hasText: m.title }).locator('.chip.wait')).toHaveText('2 waiting for you', { timeout: 10000 })
     await ctx.close()
   })
