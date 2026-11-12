@@ -156,4 +156,22 @@ test.describe('70 – adaptive media', () => {
       await h.expectHealthy(host.page)
     } finally { await host.browser.close() }
   })
+
+  test('app.js sets audioCaptureDefaults: noise suppression, echo cancellation, AGC on', async () => {
+    const host = await h.joinAsHost(meetingId)
+    try {
+      const caps = await host.page.evaluate(() => {
+        var r = window.__tenetRoom
+        if (!r || !r.options) return null
+        return r.options.audioCaptureDefaults || null
+      })
+      expect(caps).not.toBeNull()
+      expect(caps.noiseSuppression).toBe(true)
+      expect(caps.echoCancellation).toBe(true)
+      expect(caps.autoGainControl).toBe(true)
+      expect(caps.sampleRate).toBe(48000)
+      expect(caps.channelCount).toBe(1)
+      await h.expectHealthy(host.page)
+    } finally { await host.browser.close() }
+  })
 })
