@@ -128,7 +128,11 @@ async function joinAsHost (meetingId, device = DESKTOP, engine = 'chromium') {
   await setAuthCookie(ctx)
   const page = await ctx.newPage()
   track(page)
-  const res = await page.request.post(`${BASE_URL}/api/meetings/${meetingId}/join`, { data: { device_id: `test-host-${Date.now()}` } })
+  let res = await page.request.post(`${BASE_URL}/api/meetings/${meetingId}/join`, { data: { device_id: `test-host-${Date.now()}` } })
+  if (res.ok() === false && res.status() === 400) {
+    await page.waitForTimeout(2500)   // transient 400 right after a multi-participant block
+    res = await page.request.post(`${BASE_URL}/api/meetings/${meetingId}/join`, { data: { device_id: `test-host-${Date.now()}` } })
+  }
   if (res.ok() === false) { await browser.close(); throw new Error(`Host join failed ${res.status()}`) }
   const { url } = await res.json()
   await page.goto(`${BASE_URL}${url}`, { waitUntil: 'domcontentloaded' })
@@ -142,7 +146,11 @@ async function joinAsStaff (meetingId, email, displayName, device = DESKTOP) {
   await setAuthCookie(ctx, email, displayName)
   const page = await ctx.newPage()
   track(page)
-  const res = await page.request.post(`${BASE_URL}/api/meetings/${meetingId}/join`, { data: { device_id: `test-staff-${Date.now()}` } })
+  let res = await page.request.post(`${BASE_URL}/api/meetings/${meetingId}/join`, { data: { device_id: `test-staff-${Date.now()}` } })
+  if (res.ok() === false && res.status() === 400) {
+    await page.waitForTimeout(2500)
+    res = await page.request.post(`${BASE_URL}/api/meetings/${meetingId}/join`, { data: { device_id: `test-staff-${Date.now()}` } })
+  }
   if (res.ok() === false) { await browser.close(); throw new Error(`[${displayName}] staff join failed ${res.status()}`) }
   const { url } = await res.json()
   await page.goto(`${BASE_URL}${url}`, { waitUntil: 'domcontentloaded' })

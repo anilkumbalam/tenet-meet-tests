@@ -917,4 +917,105 @@ test.describe('71 – private chat', () => {
       await host.browser.close()
     }
   })
+
+  test('session window transitions from open to expired as the clock moves past 10 min', async () => {
+    const host = await h.joinAsHost(meetingId)
+    const guest = await h.joinAsGuest(roomUuid, 'Guest Expire')
+    try {
+      // Mock the clock on the GUEST (only side with the window restriction)
+      await guest.page.clock.install({ time: new Date() })
+
+      await host.page.waitForTimeout(3000)
+
+      const guestIdentity = await guest.page.evaluate(() =>
+        window.__tenetRoom.localParticipant.identity
+      )
+      const hostIdentity = await host.page.evaluate(() =>
+        window.__tenetRoom.localParticipant.identity
+      )
+
+      // Host sends — guest receives and stamps ts with the mocked Date.now()
+      await openChatPanel(host.page)
+      await host.page.evaluate((id) => window.TenetPrivateChat.openThread(id), guestIdentity)
+      await host.page.waitForTimeout(500)
+      await host.page.fill('#chat-input', 'open window')
+      await host.page.click('#chat-send')
+      await guest.page.waitForTimeout(3000)
+
+      // Guest opens the thread
+      await openChatPanel(guest.page)
+      await guest.page.evaluate((id) => window.TenetPrivateChat.openThread(id), hostIdentity)
+      await guest.page.waitForTimeout(500)
+
+      // Before expiry: status shows "reply until", input enabled
+      let status = await guest.page.$eval('.pc-session', el => el.textContent.toLowerCase())
+      expect(status).toContain('reply until')
+      let disabled = await guest.page.$eval('#chat-input', el => el.disabled)
+      expect(disabled).toBe(false)
+
+      // Fast-forward past the 10-minute window
+      await guest.page.clock.fastForward(10 * 60 * 1000 + 2000)
+      await guest.page.waitForTimeout(1500)
+
+      // After expiry: status shows ended/waiting, input disabled
+      status = await guest.page.$eval('.pc-session', el => el.textContent.toLowerCase())
+      expect(status).toMatch(/session ended|waiting for host/)
+      disabled = await guest.page.$eval('#chat-input', el => el.disabled)
+      expect(disabled).toBe(true)
+
+      await h.expectHealthy(host.page)
+      await h.expectHealthy(guest.page)
+    } finally {
+      await guest.browser.close()
+      await host.browser.close()
+    }
+  })
+
+  test('private me-bubble has the same computed style as public me-bubble', async () => {
+    const host = await h.joinAsHost(meetingId)
+    const guest = await h.joinAsGuest(roomUuid, 'Guest StyleParity')
+    try {
+      await host.page.waitForTimeout(3000)
+
+      // Send a public message — creates a .chat-msg.me in #chat-messages
+      await openChatPanel(host.page)
+      await host.page.fill('#chat-input', 'public bubble')
+      await host.page.click('#chat-send')
+      await host.page.waitForTimeout(600)
+
+      // Open private thread and send — creates a .chat-msg.me in #pc-thread-view
+      const guestIdentity = await guest.page.evaluate(() =>
+        window.__tenetRoom.localParticipant.identity
+      )
+      await host.page.evaluate((id) => window.TenetPrivateChat.openThread(id), guestIdentity)
+      await host.page.waitForTimeout(500)
+      await host.page.fill('#chat-input', 'private bubble')
+      await host.page.click('#chat-send')
+      await host.page.waitForTimeout(600)
+
+      // Compare computed style of the bubble element (.chat-msg.me > div:last-child)
+      const styles = await host.page.evaluate(() => {
+        const pub = document.querySelector('#chat-messages .chat-msg.me > div:last-child')
+        const priv = document.querySelector('#pc-thread-view .chat-msg.me > div:last-child')
+        if (!pub || !priv) return null
+        const g = el => {
+          const cs = getComputedStyle(el)
+          return { background: cs.backgroundColor, borderRadius: cs.borderRadius, display: cs.display, padding: cs.padding }
+        }
+        return { pub: g(pub), priv: g(priv) }
+      })
+
+      expect(styles).not.toBeNull()
+      expect(styles.priv.background).toBe(styles.pub.background)
+      expect(styles.priv.borderRadius).toBe(styles.pub.borderRadius)
+      expect(styles.priv.display).toBe(styles.pub.display)
+      expect(styles.priv.padding).toBe(styles.pub.padding)
+
+      await h.expectHealthy(host.page)
+      await h.expectHealthy(guest.page)
+    } finally {
+      await guest.browser.close()
+      await host.browser.close()
+    }
+  })
 })
