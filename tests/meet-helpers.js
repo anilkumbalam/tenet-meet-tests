@@ -180,11 +180,13 @@ async function openAsGuest (roomUuid, guestName, device = DESKTOP, deviceId = nu
   if (res.ok() && body.url) await page.goto(`${BASE_URL}${body.url}`, { waitUntil: 'domcontentloaded' })
   return { browser, ctx, page, name: guestName, status: res.status(), body }
 }
-async function createMeeting (browser, prefix) {
+async function createMeeting (browser, prefix, opts) {
   const ctx = await browser.newContext({ ignoreHTTPSErrors: true })
   await setAuthCookie(ctx)
   const page = await ctx.newPage()
-  const res = await page.request.post(`${BASE_URL}/api/meetings`, { data: { title: `${prefix}-${Date.now().toString(36)}`, duration_minutes: 30 } })
+  const body = { title: `${prefix}-${Date.now().toString(36)}`, duration_minutes: 30 }
+  if (opts && typeof opts.max_participants === 'number') body.max_participants = opts.max_participants
+  const res = await page.request.post(`${BASE_URL}/api/meetings`, { data: body })
   expect(res.ok()).toBeTruthy()
   const m = await res.json()
   return { meetingId: m.id, roomUuid: m.room_uuid, api: ctx }   // keep ctx: signed-in API calls
