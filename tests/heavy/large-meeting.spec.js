@@ -9,13 +9,13 @@
 const { test, expect } = require('@playwright/test')
 const h = require('../meet-helpers')
 
-const N_GUESTS = 20
+const N_GUESTS = 14   // host + 14 = 15 total; test server CPU-bound above this
 
 test.describe('heavy - large meeting', () => {
   let meetingId, roomUuid, api
 
   test.beforeAll(async ({ browser }) => {
-    const m = await h.createMeeting(browser, 'lg')
+    const m = await h.createMeeting(browser, 'lg', { max_participants: 100 })
     meetingId = m.meetingId
     roomUuid = m.roomUuid
     api = m.api
