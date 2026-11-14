@@ -63,18 +63,19 @@ test.describe('synthetic — minimal lifecycle', () => {
       } finally {
         await host.browser.close()
       }
-
-      // Explicitly end + delete so the dashboard stays clean: otherwise the row
-      // lingers as 'active' for ~5 min (LiveKit's departure_timeout -> webhook),
-      // and global-teardown's title pattern doesn't currently match synth-*.
-      // Both calls use m.api (admin context).
+    } finally {
+      // Always end + delete the meeting, even when the test body threw (e.g.
+      // the host's loading-screen timeout on 14 Nov 09:00Z, which Playwright
+      // retries — but the first attempt's meeting was left orphaned as 'active'
+      // until LiveKit's room_finished webhook fired minutes later). Running
+      // this in the outer finally means cleanup happens on every attempt,
+      // pass or fail. Both calls use m.api (admin context).
       try {
         await m.api.request.post(`${h.BASE_URL}/api/meetings/${m.meetingId}/end`)
       } catch (e) { console.warn('[synthetic] end failed:', e.message) }
       try {
         await m.api.request.delete(`${h.BASE_URL}/api/meetings/${m.meetingId}`)
       } catch (e) { console.warn('[synthetic] delete failed:', e.message) }
-    } finally {
       await m.api.close()
     }
   })
