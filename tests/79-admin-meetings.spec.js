@@ -175,4 +175,119 @@ test.describe('79 - admin All meetings', () => {
     await expect(page).toHaveURL(/\/dashboard/)
     await ctx.close()
   })
+  test('repeating meeting: one occurrence moves on its own; the next one stays in the series slot', async ({ browser }) => {
+    test.setTimeout(180000)
+    // Weekly on the weekday 2 days from now
+    const wall = istWall(2 * 864e5)
+    const weekday = new Date(wall + ':00Z').getUTCDay()
+    const r = await api.request.post(`${BASE}/api/meetings`, { data: { title: `T79 series ${stamp}`, scheduled_at: wall, duration_minutes: 30, timezone: 'Asia/Kolkata', recurrence: 'weekly', recurrence_days: String(weekday) } })
+    expect(r.ok(), 'series created').toBeTruthy()
+    const m = await r.json()
+    created.push(m.id)
+    let d = await (await api.request.get(`${BASE}/api/admin/meetings/${m.id}`)).json()
+    expect(d.meeting.recurring).toBe(true)
+    const slotMs = Date.parse(d.meeting.scheduled_at)
+
+    // Past the next meeting in the series: refused
+    const tooLate = istWall(9 * 864e5)
+    let res = await api.request.post(`${BASE}/api/admin/meetings/${m.id}/reschedule`, { data: { date: tooLate.slice(0, 10), time: tooLate.slice(11, 16), notify: false } })
+    expect(res.status()).toBe(400)
+
+    // Move this occurrence one day later, no email: the series slot is kept
+    const later = istWall(3 * 864e5)
+    res = await api.request.post(`${BASE}/api/admin/meetings/${m.id}/reschedule`, { data: { date: later.slice(0, 10), time: later.slice(11, 16), notify: false } })
+    expect(res.status()).toBe(200)
+    d = await (await api.request.get(`${BASE}/api/admin/meetings/${m.id}`)).json()
+    expect(Date.parse(d.meeting.moved_from)).toBe(slotMs)
+    expect(Date.parse(d.meeting.scheduled_at)).toBeGreaterThan(slotMs)
+
+    // Shown as moved in Upcoming
+    const { ctx, page } = await adminPage(browser)
+    await page.locator('.am-tab[data-tab="upcoming"]').click()
+    await expect(page.locator(`#meetingsCard tr[data-id="${m.id}"]`)).toContainText('Moved')
+    await ctx.close()
+
+    // Cancel it (no email); the background job then creates the next one, in the original weekly slot
+    res = await api.request.post(`${BASE}/api/admin/meetings/${m.id}/cancel`, { data: { notify: false } })
+    expect(res.status()).toBe(200)
+    let next = null
+    await expect.poll(async () => {
+      const list = await (await api.request.get(`${BASE}/api/admin/meetings?period=7d`)).json()
+      next = list.meetings.find(x => x.title === `T79 series ${stamp}` && x.status === 'scheduled' && x.id !== m.id) || null
+      return Boolean(next)
+    }, { message: 'next occurrence created by the background job', timeout: 130000, intervals: [5000] }).toBe(true)
+    created.push(next.id)
+    expect(Date.parse(next.scheduled_at)).toBe(slotMs + 7 * 864e5)
+    expect(next.moved_from).toBeNull()
+  })
+  test('host: move only one meeting of a series, then cancel the whole series from the dashboard', async ({ browser }) => {
+    test.setTimeout(240000)
+    const wall = istWall(2 * 864e5)
+    const weekday = new Date(wall + ':00Z').getUTCDay()
+    const title = `T79 host series ${stamp}`
+    const r = await api.request.post(`${BASE}/api/meetings`, { data: { title, scheduled_at: wall, duration_minutes: 30, timezone: 'Asia/Kolkata', recurrence: 'weekly', recurrence_days: String(weekday) } })
+    expect(r.ok()).toBeTruthy()
+    const m = await r.json()
+    created.push(m.id)
+    let d = await (await api.request.get(`${BASE}/api/admin/meetings/${m.id}`)).json()
+    const slotMs = Date.parse(d.meeting.scheduled_at)
+
+    // The host's own edit, "only this meeting": the series slot is kept
+    const later = istWall(3 * 864e5)
+    let res = await api.request.patch(`${BASE}/api/meetings/${m.id}`, { data: { scheduled_at: later.replace('T', ' ') + ':00', duration_minutes: 30, scope: 'one', notify: false } })
+    expect(res.status()).toBe(200)
+    d = await (await api.request.get(`${BASE}/api/admin/meetings/${m.id}`)).json()
+    expect(Date.parse(d.meeting.moved_from)).toBe(slotMs)
+
+    // Past the next one in the series: refused with a clear message
+    const tooLate = istWall(10 * 864e5)
+    res = await api.request.patch(`${BASE}/api/meetings/${m.id}`, { data: { scheduled_at: tooLate.replace('T', ' ') + ':00', scope: 'one', notify: false } })
+    expect(res.status()).toBe(400)
+    expect((await res.json()).error).toMatch(/before the next meeting/)
+
+    // Cancel the whole series from the dashboard: the dialog offers the choice
+    const ctx = await browser.newContext({ ignoreHTTPSErrors: true })
+    await H.setAuthCookie(ctx)
+    const page = await ctx.newPage()
+    await page.goto(`${BASE}/dashboard#upcoming`)
+    const row = page.locator('.row', { hasText: title }).first()
+    await expect(row).toBeVisible({ timeout: 15000 })
+    await row.locator('.more').click()
+    await page.locator('.menu button', { hasText: 'Cancel meeting' }).click()
+    const choices = page.locator('.dlg input[name="dlg-choice"]')
+    await expect(choices).toHaveCount(2)
+    await choices.nth(1).check()
+    await page.locator('.dlg [data-a="1"]').click()
+    await expect(page.locator('.dlg')).toHaveCount(0)
+    await expect.poll(async () => (await (await api.request.get(`${BASE}/api/admin/meetings/${m.id}`)).json()).meeting.status, { timeout: 10000 }).toBe('ended')
+    await ctx.close()
+
+    // No new occurrence appears (the background job runs every minute)
+    await new Promise(r => setTimeout(r, 75000))
+    const list = await (await api.request.get(`${BASE}/api/admin/meetings?period=7d`)).json()
+    expect(list.meetings.filter(x => x.title === title && x.status === 'scheduled')).toHaveLength(0)
+  })
+
+  test('admin: move this and all following, then cancel the series', async () => {
+    const wall = istWall(2 * 864e5)
+    const weekday = new Date(wall + ':00Z').getUTCDay()
+    const r = await api.request.post(`${BASE}/api/meetings`, { data: { title: `T79 admin series ${stamp}`, scheduled_at: wall, duration_minutes: 30, timezone: 'Asia/Kolkata', recurrence: 'weekly', recurrence_days: String(weekday) } })
+    expect(r.ok()).toBeTruthy()
+    const m = await r.json()
+    created.push(m.id)
+    const later = istWall(2 * 864e5 + 2 * 3600e3)
+    let res = await api.request.post(`${BASE}/api/admin/meetings/${m.id}/reschedule`, { data: { date: later.slice(0, 10), time: later.slice(11, 16), notify: false, scope: 'following' } })
+    expect(res.status()).toBe(200)
+    expect((await res.json()).scope).toBe('following')
+    let d = await (await api.request.get(`${BASE}/api/admin/meetings/${m.id}`)).json()
+    expect(d.meeting.moved_from).toBeNull()
+    res = await api.request.post(`${BASE}/api/admin/meetings/${m.id}/cancel`, { data: { notify: false, scope: 'series' } })
+    expect(res.status()).toBe(200)
+    const body = await res.json()
+    expect(body.scope).toBe('series')
+    expect(body.cancelled).toBeGreaterThanOrEqual(1)
+    d = await (await api.request.get(`${BASE}/api/admin/meetings/${m.id}`)).json()
+    expect(d.meeting.status).toBe('ended')
+    expect(d.admin_actions.map(a => a.detail.scope)).toEqual(['following', 'series'])
+  })
 })
