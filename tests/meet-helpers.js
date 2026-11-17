@@ -133,7 +133,7 @@ async function joinAsHost (meetingId, device = DESKTOP, engine = 'chromium') {
     await page.waitForTimeout(2500)   // transient 400 right after a multi-participant block
     res = await page.request.post(`${BASE_URL}/api/meetings/${meetingId}/join`, { data: { device_id: `test-host-${Date.now()}` } })
   }
-  if (res.ok() === false) { await browser.close(); throw new Error(`Host join failed ${res.status()}`) }
+  if (res.ok() === false) { const why = await res.text().catch(() => ''); await browser.close(); throw new Error(`Host join failed ${res.status()} ${why}`) }
   const { url } = await res.json()
   await page.goto(`${BASE_URL}${url}`, { waitUntil: 'domcontentloaded' })
   await finishJoin(page, 'Host')
@@ -151,7 +151,7 @@ async function joinAsStaff (meetingId, email, displayName, device = DESKTOP) {
     await page.waitForTimeout(2500)
     res = await page.request.post(`${BASE_URL}/api/meetings/${meetingId}/join`, { data: { device_id: `test-staff-${Date.now()}` } })
   }
-  if (res.ok() === false) { await browser.close(); throw new Error(`[${displayName}] staff join failed ${res.status()}`) }
+  if (res.ok() === false) { const why = await res.text().catch(() => ''); await browser.close(); throw new Error(`[${displayName}] staff join failed ${res.status()} ${why}`) }
   const { url } = await res.json()
   await page.goto(`${BASE_URL}${url}`, { waitUntil: 'domcontentloaded' })
   await finishJoin(page, displayName)

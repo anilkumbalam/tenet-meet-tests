@@ -24,7 +24,7 @@ test.describe('71 – private chat', () => {
   let meetingId, roomUuid, api
 
   test.beforeAll(async ({ browser }) => {
-    const m = await h.createMeeting(browser, 'pc71')
+    const m = await h.createMeeting(browser, 'pc71', { max_participants: 100 })   // 17 Nov: 26 tests share one meeting; closed browsers count as in for up to 90 s
     meetingId = m.meetingId
     roomUuid = m.roomUuid
     api = m.api
