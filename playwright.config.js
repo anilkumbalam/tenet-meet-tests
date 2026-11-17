@@ -4,6 +4,8 @@ const { BASE_URL } = require('./tests/env')
 module.exports = defineConfig({
   globalTeardown: require.resolve('./global-teardown.js'),   // deletes the meetings the tests created
   testDir: './tests',
+  // 17 Nov: load tests (dozens of browsers) only when asked for: HEAVY=1 npx playwright test tests/heavy/<name>
+  testIgnore: process.env.HEAVY ? [] : ['**/heavy/concurrent-meetings.spec.js', '**/heavy/large-meeting.spec.js', '**/heavy/long-meeting.spec.js'],
   timeout: 120000,
   globalTimeout: 3600000,   // 9 Nov: 60 min, the suite now takes over 30
   retries: 1,
