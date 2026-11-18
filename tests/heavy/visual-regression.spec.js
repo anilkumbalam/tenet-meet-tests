@@ -15,6 +15,11 @@ const h = require('../meet-helpers')
 const MASK = (page, selectors) => selectors.map(s => page.locator(s)).filter(Boolean)
 // Always mask moving bits: timers, live participant counts, random colours
 const VOLATILE = ['#timer', '#today', '.when span', '.chat-time']
+// 18 Nov: the dashboard's meeting list depends on whatever meetings exist (real ones and the run's own), so it is
+// masked and only the visible screen is compared: the page's layout is checked, not today's data
+const DASH_VOLATILE = [...VOLATILE, '#meetingsList', '.tab .cnt', '[id^="cnt-"]', '#greet']
+// 18 Nov: the mask is the size of the list, so the list gets a fixed height before the picture is taken
+const FIX_LIST = async page => page.addStyleTag({ content: '#meetingsList { height: 320px !important; overflow: hidden !important; }' })
 
 test.describe('heavy - visual regression', () => {
   test.beforeEach(async ({ page }) => {
@@ -36,9 +41,10 @@ test.describe('heavy - visual regression', () => {
     await page.goto(`${h.BASE_URL}/dashboard`, { waitUntil: 'domcontentloaded' })
     await expect(page.locator('#acctBtn')).toBeVisible({ timeout: 15000 })
     await page.waitForTimeout(1000)
+    await FIX_LIST(page)
     await expect(page).toHaveScreenshot('dashboard-today.png', {
-      fullPage: true,
-      mask: MASK(page, VOLATILE),
+      fullPage: false,
+      mask: MASK(page, DASH_VOLATILE),
       maxDiffPixelRatio: 0.02
     })
     await ctx.close()
@@ -51,9 +57,10 @@ test.describe('heavy - visual regression', () => {
     await page.goto(`${h.BASE_URL}/dashboard#upcoming`, { waitUntil: 'domcontentloaded' })
     await expect(page.locator('#acctBtn')).toBeVisible({ timeout: 15000 })
     await page.waitForTimeout(1000)
+    await FIX_LIST(page)
     await expect(page).toHaveScreenshot('dashboard-upcoming.png', {
-      fullPage: true,
-      mask: MASK(page, VOLATILE),
+      fullPage: false,
+      mask: MASK(page, DASH_VOLATILE),
       maxDiffPixelRatio: 0.02
     })
     await ctx.close()

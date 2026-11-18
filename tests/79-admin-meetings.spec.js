@@ -124,9 +124,15 @@ test.describe('79 - admin All meetings', () => {
       await row.locator('[data-act="details"]').click()
       const body = page.locator('#panel-body')
       for (const text of ['Host:', 'Status:', 'Started:', 'Peak participants:']) await expect(body).toContainText(text)
-      await expect(page.locator('#panel-body .parts-table thead')).toHaveText(/Person\s*Joined\s*Left\s*How they ended\s*Poor time/)
+      await expect(page.locator('#panel-body .parts-table thead')).toHaveText(/Person\s*Joined\s*Mic & camera\s*Left\s*How they ended\s*Poor time/)   // 18 Nov: live column
       await expect(body).toContainText('In the meeting')
       await expect(body).toContainText('T79 Guest')
+      // what LiveKit says the guest is sending (the test browser has a fake mic)
+      await expect(page.locator('#panel-body .parts-table tbody tr', { hasText: 'T79 Guest' })).toContainText(/Mic on|Mic muted|No mic/)
+      await expect(body).toContainText('refreshes every 10 s')
+      // 18 Nov: the guest's own page reports every 30 s (live-stats.js); the panel refreshes every 10 s
+      await expect.poll(async () => (await page.locator('#panel-body .parts-table tbody tr', { hasText: 'T79 Guest' }).textContent()) || '',
+        { message: 'the guest\'s page reports its connection', timeout: 75000, intervals: [5000] }).toMatch(/Connection (good|poor|lost)/)
       await page.locator('#panel-close').click()
 
       // End now, with a message, no email

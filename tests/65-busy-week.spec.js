@@ -130,13 +130,22 @@ test.describe.serial('65 - A busy week seen by everyone', () => {
     for (const t of ['today', 'upcoming', 'ended']) expect(await tab(d.page, t), 'other: ' + t).toEqual([])
   })
 
-  test('admin: none on their own tabs; all of them under All meetings, with ⋯ on the scheduled ones', async ({ browser }) => {
+  test('admin: none on their own tabs; all of them under All meetings, with Cancel and Reschedule on the scheduled ones', async ({ browser }) => {
     const d = await dash(browser, 'admin'); ctxs.push(d.ctx)
     for (const t of ['today', 'upcoming', 'ended']) expect(await tab(d.page, t), 'admin own ' + t).toEqual([])
-    const all = await tab(d.page, 'all')
-    const want = PLAN
-    expect(all.map(r => r.title).sort(), 'All meetings').toEqual(want.map(m => m.title).sort())
-    for (const m of want.filter(x => x.at && !x.cancel)) expect(all.find(r => r.title === m.title).more, m.key + ': admin ⋯').toBe(true)
+    // 18 Nov: All meetings is the admin page (/admin/meetings); the in-dashboard view was removed
+    const res = await d.page.request.get(BASE + '/api/admin/meetings?period=30d')
+    expect(res.ok(), 'admin list').toBe(true)
+    const listed = (await res.json()).meetings.filter(m => PLAN.some(p => p.title === m.title))
+    expect([...new Set(listed.map(m => m.title))].sort(), 'All meetings').toEqual(PLAN.map(m => m.title).sort())
+    await d.page.goto(BASE + '/admin/meetings')
+    await d.page.locator('.am-tab[data-tab="upcoming"]').click()
+    for (const m of PLAN.filter(x => x.at && !x.cancel)) {
+      const row = d.page.locator('#meetingsCard tbody tr', { hasText: m.title }).first()
+      await expect(row, m.key + ': under Upcoming').toBeVisible({ timeout: 15000 })
+      await expect(row.locator('[data-act="cancel"]'), m.key + ': admin Cancel').toBeVisible()
+      await expect(row.locator('[data-act="reschedule"]'), m.key + ': admin Reschedule').toBeVisible()
+    }
   })
 
   test('a guest opening the design review link sees the title, the host and the countdown', async ({ browser }) => {
