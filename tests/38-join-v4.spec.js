@@ -68,13 +68,13 @@ test.describe.serial('38 - v4 join page', () => {
     expect(errors.filter(e => /Content Security Policy|Refused to/i.test(e)), 'browser blocked something').toEqual([])
   })
 
-  test('empty name is refused on the page; v3 people keep the old join page', async () => {
+  test('empty name is refused on the page; v3 join links now get the strict v4 page', async () => {
     const page = await (await gb.newContext({ ...H.DESKTOP })).newPage()
     await page.goto(`${B}/join/${m.roomUuid}`)
     await page.locator('#btn').click()
     await expect(page.locator('#err-msg')).toHaveText('Please enter your name.')
     const old = await m.api.request.get(`${B}/join/${m.roomUuid}?ui=3`)
-    expect(await old.text()).toContain(`var roomUuid=${JSON.stringify(m.roomUuid)}`)
+    expect(await old.text(), 'v3 join retired (19 Nov): ?ui=3 now serves the strict v4 join page').toContain('/v4/js/join-v4.js')
     const r4 = await m.api.request.get(`${B}/join/${m.roomUuid}?ui=4`)
     expect(r4.headers()['set-cookie'] || '', '?ui=4 on a guest link is remembered').toContain('meet_ui=4')
     await H.expectHealthy(host)

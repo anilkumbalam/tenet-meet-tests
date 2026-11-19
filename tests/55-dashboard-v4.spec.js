@@ -15,6 +15,8 @@ const BASE = H.BASE_URL || ENV.BASE_URL
 const HOST = process.env.HOST_EMAIL || 'anil@tenetnetworks.com'                  // an admin
 const MEMBER = process.env.MEMBER_EMAIL || 'pw-member55@tenetnetworks.com'        // not an admin (no row needed)
 const DOMAIN = new URL(BASE).hostname
+const cspOf = r => r.headersArray().filter(h => h.name.toLowerCase() === 'content-security-policy').map(h => h.value)
+const scriptSrc = v => (/script-src ([^;]*)/.exec(v) || [])[1] || ''
 
 // the page takes Admin from the pass (as a real sign-in does from the users table): HOST signs in as admin
 const pass = (email, name) => jwt.sign({ email, displayName: name, isAdmin: email === HOST }, KEY, { expiresIn: '2h' })
@@ -52,6 +54,21 @@ test.describe.serial('55 - Dashboard v4', () => {
     const host = await api(HOST)
     for (const id of Object.values(ids)) await host.delete('/api/meetings/' + id)                  // admin may delete any; delete sends no email
     await host.dispose()
+  })
+
+  test('strict CSP: v4 dashboard is script-src self with no inline handlers', async ({ browser }) => {
+    const host = await api(HOST)
+    try {
+      const r = await host.get('/dashboard?dash=4')
+      expect(cspOf(r).length, 'one policy header').toBe(1)
+      expect(scriptSrc(cspOf(r)[0]), 'v4 dashboard: no inline scripts allowed').toBe("'self'")
+    } finally { await host.dispose() }
+    const { ctx, page } = await dash(browser, HOST)
+    try {
+      await page.goto(`${BASE}/dashboard?dash=4`)
+      await expect(page.locator('#acctBtn')).toBeVisible({ timeout: 15000 })
+      expect(await page.evaluate(() => document.querySelectorAll('[onclick]').length), 'no inline onclick on the v4 dashboard').toBe(0)
+    } finally { await ctx.close() }
   })
 
   test('?dash=4 serves the new dashboard and remembers it; ?dash=old goes back', async ({ browser }) => {
