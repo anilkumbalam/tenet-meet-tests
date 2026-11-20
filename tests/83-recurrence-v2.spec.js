@@ -9,7 +9,7 @@ const wd  = s => new Date(String(s).slice(0,10) + 'T00:00:00Z').getUTCDay()
 const dom = s => Number(String(s).slice(8,10))
 const mon = s => Number(String(s).slice(5,7))
 const dim = s => new Date(Number(String(s).slice(0,4)), Number(String(s).slice(5,7)), 0).getUTCDate()
-test.describe('81 - recurrence v2 patterns', () => {
+test.describe('83 - recurrence v2 patterns', () => {
   test.describe.configure({ mode: 'serial' })
   const stamp = Date.now().toString(36)
   const date = istDate(Date.now() + 2 * DAY)
