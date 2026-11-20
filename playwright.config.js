@@ -7,7 +7,7 @@ module.exports = defineConfig({
   // 17 Nov: load tests (dozens of browsers) only when asked for: HEAVY=1 npx playwright test tests/heavy/<name>
   testIgnore: process.env.HEAVY ? [] : ['**/heavy/concurrent-meetings.spec.js', '**/heavy/large-meeting.spec.js', '**/heavy/long-meeting.spec.js'],
   timeout: 120000,
-  globalTimeout: 3600000,   // 9 Nov: 60 min, the suite now takes over 30
+  globalTimeout: 5400000,   // 20 Nov: 90 min (suite ~53 min; headroom for retries + recurrence specs)
   retries: 1,
   workers: 1,
   use: {
